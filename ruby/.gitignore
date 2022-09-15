@@ -1,0 +1,5 @@
+/Gemfile.lock
+/coverage
+/lib/*.so
+/lib/*.dylib
+/tmp
