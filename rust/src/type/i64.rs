@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::i64v1::I64v1;
-use super::TypeError;
-use crate::Field;
+use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 pub enum I64 {
@@ -11,11 +10,11 @@ pub enum I64 {
 }
 
 impl I64 {
-    pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64, TypeError> {
+    pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64, Error> {
         Ok(I64::v1(I64v1::new(i, context, field)?))
     }
 
-    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, TypeError> {
+    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         match self {
             I64::v1(i) => i.decrypt(context, field),
         }

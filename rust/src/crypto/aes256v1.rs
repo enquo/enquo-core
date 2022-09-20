@@ -5,8 +5,7 @@ use rand_chacha::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::aes256::AES256Error;
-use crate::Field;
+use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AES256v1 {
@@ -20,7 +19,7 @@ pub struct AES256v1 {
 const AES256v1_KEY_IDENTIFIER: &[u8] = b"AES256v1_key";
 
 impl AES256v1 {
-    pub fn new(plaintext: &[u8], context: &[u8], field: &Field) -> Result<AES256v1, AES256Error> {
+    pub fn new(plaintext: &[u8], context: &[u8], field: &Field) -> Result<AES256v1, Error> {
         let key: &[u8] = &field.subkey(AES256v1_KEY_IDENTIFIER);
         let cipher = Aes256GcmSiv::new(key.into());
 
@@ -36,7 +35,7 @@ impl AES256v1 {
                     aad: context,
                 },
             )
-            .map_err(|_| AES256Error::EncryptionError("failed to encrypt plaintext".to_string()))?;
+            .map_err(|_| Error::EncryptionError("failed to AES256-encrypt plaintext".to_string()))?;
 
         Ok(AES256v1 {
             nonce: nonce.to_vec(),
@@ -44,7 +43,7 @@ impl AES256v1 {
         })
     }
 
-    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<Vec<u8>, AES256Error> {
+    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<Vec<u8>, Error> {
         let key: &[u8] = &field.subkey(AES256v1_KEY_IDENTIFIER);
         let cipher = Aes256GcmSiv::new(key.into());
 
@@ -56,6 +55,6 @@ impl AES256v1 {
                     aad: context,
                 },
             )
-            .map_err(|_| AES256Error::DecryptionError("failed to decrypt ciphertext".to_string()))
+            .map_err(|_| Error::DecryptionError("failed to decrypt AES256 ciphertext".to_string()))
     }
 }

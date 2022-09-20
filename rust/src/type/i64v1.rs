@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 
 use crate::{
     crypto::{AES256, ORE64},
-    r#type::TypeError,
+    Error,
     Field,
 };
 
@@ -22,22 +22,22 @@ pub struct I64v1 {
 const I64_OFFSET: i128 = 9_223_372_036_854_775_808;
 
 impl I64v1 {
-    pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64v1, TypeError> {
+    pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
         let v = cbor!(i)
-            .map_err(|e| TypeError::EncodingError(format!("failed to encode i64: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e)))?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
-            .map_err(|e| TypeError::EncodingError(format!("failed to write i64 to msg: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {}", e)))?;
 
         let aes =
-            AES256::new(&msg, context, field).map_err(|e| TypeError::CryptoError(e.to_string()))?;
+            AES256::new(&msg, context, field)?;
 
         let u: u64 = ((i as i128) + I64_OFFSET).try_into().map_err(|_| {
-            TypeError::ConversionError(format!("failed to convert i64 {} to u64", i))
+            Error::EncodingError(format!("failed to convert i64 {} to u64", i))
         })?;
         let ore =
-            ORE64::new(u, context, field).map_err(|e| TypeError::CryptoError(e.to_string()))?;
+            ORE64::new(u, context, field)?;
 
         Ok(I64v1 {
             aes_ciphertext: aes,
@@ -46,21 +46,20 @@ impl I64v1 {
         })
     }
 
-    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, TypeError> {
+    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         let pt = self
             .aes_ciphertext
-            .decrypt(context, field)
-            .map_err(|e| TypeError::CryptoError(format!("failed to decrypt i64: {}", e)))?;
+            .decrypt(context, field)?;
 
         let v = ciborium::de::from_reader(&*pt).map_err(|e| {
-            TypeError::DecodingError(format!("Could not decode decrypted value: {}", e))
+            Error::DecodingError(format!("could not decode decrypted value: {}", e))
         })?;
 
         match v {
             Value::Integer(i) => Ok(i.try_into().map_err(|_| {
-                TypeError::DecodingError("Decoded value is not a valid u64".to_string())
+                Error::DecodingError("decoded value is not a valid i64".to_string())
             })?),
-            _ => Err(TypeError::DecodingError(format!(
+            _ => Err(Error::DecodingError(format!(
                 "Decoded value is not an integer (got {:?})",
                 v
             ))),
@@ -109,6 +108,6 @@ mod tests {
         let cipher = I64v1::new(42, b"somecontext", &field()).unwrap();
 
         let err = cipher.decrypt(b"othercontext", &field()).err();
-        assert!(matches!(err, Some(TypeError::CryptoError(_))));
+        assert!(matches!(err, Some(Error::DecryptionError(_))));
     }
 }

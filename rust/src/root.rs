@@ -1,18 +1,11 @@
-use crate::Field;
-use thiserror::Error;
+use crate::{Error, Field};
 
 pub struct Root {
     pub key: Vec<u8>,
 }
 
-#[derive(Error, Debug)]
-pub enum RootError {
-    #[error("Could not create new Root instance: {0}")]
-    NewError(String),
-}
-
 impl Root {
-    pub fn new(key: &[u8]) -> Result<Root, RootError> {
+    pub fn new(key: &[u8]) -> Result<Root, Error> {
         Ok(Root { key: key.to_vec() })
     }
 

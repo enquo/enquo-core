@@ -2,8 +2,7 @@ use ore_rs::{scheme::bit2::OREAES128, CipherText, Left, ORECipher, Right};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
-use super::ore64::ORE64Error;
-use crate::Field;
+use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ORE64v1 {
@@ -19,7 +18,7 @@ const ORE64v1_PRF_KEY_IDENTIFIER: &[u8] = b"OREv1.prf_key";
 const ORE64v1_PRP_KEY_IDENTIFIER: &[u8] = b"OREv1.prp_key";
 
 impl ORE64v1 {
-    pub fn new(plaintext: u64, _context: &[u8], field: &Field) -> Result<ORE64v1, ORE64Error> {
+    pub fn new(plaintext: u64, _context: &[u8], field: &Field) -> Result<ORE64v1, Error> {
         let mut prf_key: [u8; 16] = Default::default();
         let mut prp_key: [u8; 16] = Default::default();
 
@@ -28,10 +27,10 @@ impl ORE64v1 {
 
         let seed: [u8; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
         let cipher: OREAES128 = ORECipher::init(prf_key, prp_key, &seed).map_err(|e| {
-            ORE64Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
+            Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
         })?;
         let ore = OREAES128::encrypt(&cipher, &plaintext.to_be_bytes()).map_err(|e| {
-            ORE64Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
+            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
         })?;
 
         Ok(ORE64v1 {

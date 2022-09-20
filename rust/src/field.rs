@@ -2,7 +2,8 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 
 use crate::{
-    r#type::{TypeError, I64},
+    Error,
+    r#type::I64,
     Root,
 };
 
@@ -40,7 +41,7 @@ impl Field {
         keygen.finalize().into_bytes().to_vec()
     }
 
-    pub fn i64(&self, i: i64, context: &[u8]) -> Result<I64, TypeError> {
+    pub fn i64(&self, i: i64, context: &[u8]) -> Result<I64, Error> {
         I64::new(i, context, self)
     }
 }

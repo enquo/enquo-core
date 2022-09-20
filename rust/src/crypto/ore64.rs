@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use thiserror::Error;
 
 use super::ore64v1::ORE64v1;
-use crate::Field;
+use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ORE64 {
@@ -11,14 +10,8 @@ pub enum ORE64 {
     v1(ORE64v1),
 }
 
-#[derive(Error, Debug)]
-pub enum ORE64Error {
-    #[error("failed to encrypt data: {0}")]
-    EncryptionError(String),
-}
-
 impl ORE64 {
-    pub fn new(u: u64, context: &[u8], field: &Field) -> Result<ORE64, ORE64Error> {
+    pub fn new(u: u64, context: &[u8], field: &Field) -> Result<ORE64, Error> {
         Ok(ORE64::v1(ORE64v1::new(u, context, field)?))
     }
 

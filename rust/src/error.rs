@@ -1,0 +1,13 @@
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("failed to encode value: {0}")]
+    EncodingError(String),
+    #[error("failed to decode value: {0}")]
+    DecodingError(String),
+    #[error("failed to encrypt value: {0}")]
+    EncryptionError(String),
+    #[error("failed to decrypt value: {0}")]
+    DecryptionError(String),
+}
