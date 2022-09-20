@@ -6,10 +6,10 @@ require "securerandom"
 
 describe Enquo::Field do
 	let(:key) { SecureRandom.bytes(32) }
-	let(:crypto) { Enquo::Crypto.new(key) }
+	let(:root) { Enquo::Root.new(key) }
 	let(:collection) { "foo" }
 	let(:field_name) { "bar" }
-	let(:field) { crypto.field(collection, field_name) }
+	let(:field) { root.field(collection, field_name) }
 
 	describe "#encrypt_i64" do
 		context "with a small positive integer" do
@@ -17,7 +17,7 @@ describe Enquo::Field do
 			let(:context) { "test" }
 			let(:result) { field.encrypt_i64(value, context) }
 			let(:json) { JSON.parse(result, symbolize_names: true) }
-			let(:ore64v1) { json[:ORE64v1] }
+			let(:v1) { json[:v1] }
 
 			it "works" do
 				expect { result }.to_not raise_error
@@ -35,20 +35,21 @@ describe Enquo::Field do
 				expect(json).to be_a(Hash)
 			end
 
-			it "contains an ORE64v1 value" do
-				expect(json).to have_key(:ORE64v1)
+			it "is a v1 i64" do
+				expect(json).to have_key(:v1)
 			end
 
-			it "has a ciphertext" do
-				expect(ore64v1).to have_key(:ct)
+			it "contains an ORE value" do
+				expect(v1).to have_key(:o)
 			end
 
-			it "has an IV" do
-				expect(ore64v1).to have_key(:iv)
+			it "has an AES value" do
+				expect(v1).to have_key(:a)
 			end
 
-			it "has an ORE ciphertext" do
-				expect(ore64v1).to have_key(:ore)
+			it "has a key ID" do
+				expect(v1).to have_key(:k)
+				expect(v1[:k].length).to eq(4)
 			end
 		end
 	end

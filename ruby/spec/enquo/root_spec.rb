@@ -4,18 +4,18 @@ require "enquo"
 
 require "securerandom"
 
-describe Enquo::Crypto do
-	let(:crypto) { Enquo::Crypto.new(key) }
+describe Enquo::Root do
+	let(:root) { Enquo::Root.new(key) }
 
 	context "with a valid key" do
 		let(:key) { SecureRandom.bytes(32) }
 
 		it "loads successfully" do
-			expect { crypto }.to_not raise_error
+			expect { root }.to_not raise_error
 		end
 
 		it "generates a field" do
-			expect { crypto.field("foo", "bar") }.to_not raise_error
+			expect { root.field("foo", "bar") }.to_not raise_error
 		end
 	end
 
@@ -29,7 +29,7 @@ describe Enquo::Crypto do
 			let(:key) { input }
 
 			it "assplodes" do
-				expect { crypto }.to raise_error(ArgumentError)
+				expect { root }.to raise_error(ArgumentError)
 			end
 		end
 	end

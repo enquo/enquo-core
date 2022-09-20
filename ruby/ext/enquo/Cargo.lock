@@ -544,8 +544,6 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 [[package]]
 name = "ore-rs"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd1bd35a0243fdfe6bda6fda2b900b9dd7e2ccbc17cbef23c9b6b48cb70790c4"
 dependencies = [
  "aes 0.7.5",
  "block-modes",

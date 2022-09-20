@@ -1,4 +1,5 @@
 module Enquo
+	class Error < StandardError; end
 end
 
 begin
@@ -12,5 +13,5 @@ rescue LoadError
 	end
 end
 
-require_relative "./enquo/crypto"
+require_relative "./enquo/root"
 require_relative "./enquo/field"
