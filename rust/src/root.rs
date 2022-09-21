@@ -1,15 +1,19 @@
-use crate::{Error, Field};
+use crate::{Error, Field, KeyProvider};
 
-pub struct Root {
-    pub key: Vec<u8>,
+pub struct Root<'a> {
+    pub key_provider: &'a dyn KeyProvider,
 }
 
-impl Root {
-    pub fn new(key: &[u8]) -> Result<Root, Error> {
-        Ok(Root { key: key.to_vec() })
+impl Root<'_> {
+    pub fn new(key_provider: &dyn KeyProvider) -> Result<Root, Error> {
+        Ok(Root { key_provider })
     }
 
-    pub fn field(&self, collection: &[u8], name: &[u8]) -> Field {
+    pub fn derive_key(&self, id: &[u8]) -> Result<Vec<u8>, Error> {
+        self.key_provider.derive_key(id)
+    }
+
+    pub fn field(&self, collection: &[u8], name: &[u8]) -> Result<Field, Error> {
         Field::new(self, collection, name)
     }
 }
@@ -20,7 +24,8 @@ mod tests {
 
     #[test]
     fn generates_a_field() {
-        let crypto = Root::new(&[0; 32]).unwrap();
-        crypto.field(b"users", b"full_name");
+        let k: &[u8] = &[0; 32];
+        let root = Root::new(&k).unwrap();
+        root.field(b"users", b"full_name").unwrap();
     }
 }

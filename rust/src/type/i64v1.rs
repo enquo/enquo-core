@@ -4,8 +4,7 @@ use std::cmp::Ordering;
 
 use crate::{
     crypto::{AES256, ORE64},
-    Error,
-    Field,
+    Error, Field,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,33 +22,30 @@ const I64_OFFSET: i128 = 9_223_372_036_854_775_808;
 
 impl I64v1 {
     pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
-        let v = cbor!(i)
-            .map_err(|e| Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e)))?;
+        let v = cbor!(i).map_err(|e| {
+            Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e))
+        })?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
             .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {}", e)))?;
 
-        let aes =
-            AES256::new(&msg, context, field)?;
+        let aes = AES256::new(&msg, context, field)?;
 
-        let u: u64 = ((i as i128) + I64_OFFSET).try_into().map_err(|_| {
-            Error::EncodingError(format!("failed to convert i64 {} to u64", i))
-        })?;
-        let ore =
-            ORE64::new(u, context, field)?;
+        let u: u64 = ((i as i128) + I64_OFFSET)
+            .try_into()
+            .map_err(|_| Error::EncodingError(format!("failed to convert i64 {} to u64", i)))?;
+        let ore = ORE64::new(u, context, field)?;
 
         Ok(I64v1 {
             aes_ciphertext: aes,
             ore_ciphertext: ore,
-            key_id: field.key_id(),
+            key_id: field.key_id()?,
         })
     }
 
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
-        let pt = self
-            .aes_ciphertext
-            .decrypt(context, field)?;
+        let pt = self.aes_ciphertext.decrypt(context, field)?;
 
         let v = ciborium::de::from_reader(&*pt).map_err(|e| {
             Error::DecodingError(format!("could not decode decrypted value: {}", e))
@@ -93,7 +89,8 @@ mod tests {
     use crate::Root;
 
     fn field() -> Field {
-        Root::new(b"testkey").unwrap().field(b"foo", b"bar")
+        let k: &[u8] = b"testkey";
+        Root::new(&k).unwrap().field(b"foo", b"bar").unwrap()
     }
 
     #[test]

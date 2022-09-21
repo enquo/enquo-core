@@ -14,4 +14,5 @@ rescue LoadError
 end
 
 require_relative "./enquo/root"
+require_relative "./enquo/root_key"
 require_relative "./enquo/field"

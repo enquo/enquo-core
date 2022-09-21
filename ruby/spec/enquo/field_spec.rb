@@ -5,7 +5,7 @@ require "enquo"
 require "securerandom"
 
 describe Enquo::Field do
-	let(:key) { SecureRandom.bytes(32) }
+	let(:key) { Enquo::RootKey::Static.new(SecureRandom.bytes(32)) }
 	let(:root) { Enquo::Root.new(key) }
 	let(:collection) { "foo" }
 	let(:field_name) { "bar" }

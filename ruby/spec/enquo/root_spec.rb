@@ -7,8 +7,8 @@ require "securerandom"
 describe Enquo::Root do
 	let(:root) { Enquo::Root.new(key) }
 
-	context "with a valid key" do
-		let(:key) { SecureRandom.bytes(32) }
+	context "with a static key" do
+		let(:key) { Enquo::RootKey::Static.new(SecureRandom.bytes(32)) }
 
 		it "loads successfully" do
 			expect { root }.to_not raise_error

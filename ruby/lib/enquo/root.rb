@@ -1,19 +1,12 @@
 module Enquo
 	class Root
 		def self.new(key)
-			unless key.is_a?(String)
-				raise ArgumentError, "key provided to Enquo::Root.new must be a string (got a #{key.class})"
+			case key
+			when RootKey::Static
+				_new_from_static_root_key(key)
+			else
+				raise ArgumentError, "key must be a root key provider object (got a #{key.class})"
 			end
-
-			unless key.encoding == Encoding::BINARY
-				raise ArgumentError, "key provided to Enquo::Root.new must be a binary string (got a string encoded as #{key.encoding})"
-			end
-
-			unless key.bytesize == 32
-				raise ArgumentError, "key provided to Enquo::Root.new must be a 32 byte binary string (got #{key.bytesize} bytes)"
-			end
-
-			_new(key)
 		end
 
 		def field(relation, name)

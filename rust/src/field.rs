@@ -1,44 +1,30 @@
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-
-use crate::{
-    Error,
-    r#type::I64,
-    Root,
-};
+use crate::{r#type::I64, Error, KeyProvider, Root};
 
 pub struct Field {
-    key: Vec<u8>,
+    field_key: Vec<u8>,
 }
 
 impl Field {
-    pub fn new(root: &Root, collection: &[u8], name: &[u8]) -> Field {
-        let key = Self::field_key(&root.key, collection, name);
+    pub fn new(root: &Root, collection: &[u8], name: &[u8]) -> Result<Field, Error> {
+        let field_key = Self::field_key(root, collection, name)?;
 
-        Field { key }
+        Ok(Field { field_key })
     }
 
-    pub fn subkey(&self, identifier: &[u8]) -> Vec<u8> {
-        Self::derive_key(&self.key, identifier)
+    pub fn subkey(&self, identifier: &[u8]) -> Result<Vec<u8>, Error> {
+        self.field_key.derive_key(identifier)
     }
 
-    pub fn key_id(&self) -> Vec<u8> {
-        self.subkey(b"Field.key_id")[0..4].to_vec()
+    pub fn key_id(&self) -> Result<Vec<u8>, Error> {
+        Ok(self.field_key.derive_key(b"Field.key_id")?[0..4].to_vec())
     }
 
-    fn field_key(root_key: &[u8], collection: &[u8], name: &[u8]) -> Vec<u8> {
-        let mut key_id = Vec::<u8>::with_capacity(collection.len() + name.len() + 1);
-        key_id.extend(collection);
-        key_id.push(0);
-        key_id.extend(name);
-        Self::derive_key(root_key, &key_id)
-    }
-
-    fn derive_key(base_key: &[u8], identifier: &[u8]) -> Vec<u8> {
-        let mut keygen = Hmac::<Sha256>::new_from_slice(base_key).unwrap();
-        keygen.update(identifier);
-
-        keygen.finalize().into_bytes().to_vec()
+    fn field_key(root: &Root, collection: &[u8], name: &[u8]) -> Result<Vec<u8>, Error> {
+        let mut id = Vec::<u8>::with_capacity(collection.len() + name.len() + 1);
+        id.extend(collection);
+        id.push(0);
+        id.extend(name);
+        root.derive_key(&id)
     }
 
     pub fn i64(&self, i: i64, context: &[u8]) -> Result<I64, Error> {
@@ -53,17 +39,15 @@ mod tests {
 
     #[test]
     fn derives_field_key_correctly() {
-        let f = Field::new(
-            &Root {
-                key: b"testkey".to_vec(),
-            },
-            b"users",
-            b"full_name",
-        );
+        let rk: &[u8] = b"testkey";
+        let f = Root::new(&rk)
+            .unwrap()
+            .field(b"users", b"full_name")
+            .unwrap();
 
         assert_eq!(
             hex!["382beeb4093bc280 163017113af33e12 ca5d55b84e42e1b9 758d66ddcbd9b9d8"].to_vec(),
-            f.key
+            f.field_key
         );
     }
 }

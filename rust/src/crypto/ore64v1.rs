@@ -22,8 +22,8 @@ impl ORE64v1 {
         let mut prf_key: [u8; 16] = Default::default();
         let mut prp_key: [u8; 16] = Default::default();
 
-        prf_key.clone_from_slice(&field.subkey(ORE64v1_PRF_KEY_IDENTIFIER)[0..16]);
-        prp_key.clone_from_slice(&field.subkey(ORE64v1_PRP_KEY_IDENTIFIER)[0..16]);
+        prf_key.clone_from_slice(&field.subkey(ORE64v1_PRF_KEY_IDENTIFIER)?[0..16]);
+        prp_key.clone_from_slice(&field.subkey(ORE64v1_PRP_KEY_IDENTIFIER)?[0..16]);
 
         let seed: [u8; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
         let cipher: OREAES128 = ORECipher::init(prf_key, prp_key, &seed).map_err(|e| {
@@ -101,13 +101,8 @@ mod tests {
     use crate::{Field, Root};
 
     fn field() -> Field {
-        Field::new(
-            &Root {
-                key: b"ohai!".to_vec(),
-            },
-            b"foo",
-            b"bar",
-        )
+        let rk: &[u8] = b"testkey";
+        Root::new(&rk).unwrap().field(b"foo", b"bar").unwrap()
     }
 
     quickcheck! {

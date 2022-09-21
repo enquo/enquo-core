@@ -10,4 +10,6 @@ pub enum Error {
     EncryptionError(String),
     #[error("failed to decrypt value: {0}")]
     DecryptionError(String),
+    #[error("failed to derive key material: {0}")]
+    KeyError(String),
 }
