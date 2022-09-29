@@ -1,4 +1,7 @@
-use ore_rs::{scheme::bit2::OREAES128, CipherText, Left, ORECipher, Right};
+use cretrit::{
+    aes128v1::ore,
+    SerializableCipherText,
+};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
@@ -13,46 +16,35 @@ pub struct ORE64v1 {
 }
 
 #[allow(non_upper_case_globals)]
-const ORE64v1_PRF_KEY_IDENTIFIER: &[u8] = b"OREv1.prf_key";
-#[allow(non_upper_case_globals)]
-const ORE64v1_PRP_KEY_IDENTIFIER: &[u8] = b"OREv1.prp_key";
+const ORE64v1_KEY_IDENTIFIER: &[u8] = b"ORE64v1.prf_key";
 
 impl ORE64v1 {
     pub fn new(plaintext: u64, _context: &[u8], field: &Field) -> Result<ORE64v1, Error> {
-        let mut prf_key: [u8; 16] = Default::default();
-        let mut prp_key: [u8; 16] = Default::default();
+        let mut key: [u8; 16] = Default::default();
 
-        prf_key.clone_from_slice(&field.subkey(ORE64v1_PRF_KEY_IDENTIFIER)?[0..16]);
-        prp_key.clone_from_slice(&field.subkey(ORE64v1_PRP_KEY_IDENTIFIER)?[0..16]);
+        key.clone_from_slice(&field.subkey(ORE64v1_KEY_IDENTIFIER)?[0..16]);
 
-        let seed: [u8; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
-        let cipher: OREAES128 = ORECipher::init(prf_key, prp_key, &seed).map_err(|e| {
+        let cipher = ore::Cipher::<8, 256>::new(key).map_err(|e| {
             Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
         })?;
-        let ore = OREAES128::encrypt(&cipher, &plaintext.to_be_bytes()).map_err(|e| {
+        let ct = cipher.encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
         })?;
 
         Ok(ORE64v1 {
-            left: Some(ore.left.to_bytes()),
-            right: ore.right.to_bytes(),
+            left: Some(ct.left.expect("CAN'T HAPPEN: cipher.encrypt returned ciphertext without left part!").to_vec()),
+            right: ct.right.to_vec(),
         })
     }
 
-    fn ore_ciphertext(&self) -> CipherText<OREAES128, 8> {
-        match &self.left {
-            None => CipherText::<OREAES128, 8> {
-                left: Left::<OREAES128, 8> {
-                    f: [Default::default(); 8],
-                    xt: [0; 8],
-                },
-                right: Right::<OREAES128, 8>::from_bytes(&self.right).unwrap(),
+    fn ciphertext(&self) -> Result<ore::CipherText<8, 256>, Error> {
+        Ok(ore::CipherText::<8, 256> {
+            left: match &self.left {
+                None => None,
+                Some(l) => Some(ore::LeftCipherText::<8, 256>::from_slice(&l).map_err(|e| Error::DecodingError(e.to_string()))?),
             },
-            Some(l) => CipherText::<OREAES128, 8> {
-                left: Left::<OREAES128, 8>::from_bytes(l).unwrap(),
-                right: Right::<OREAES128, 8>::from_bytes(&self.right).unwrap(),
-            },
-        }
+            right: ore::RightCipherText::<8, 256>::from_slice(&self.right).map_err(|e| Error::DecodingError(e.to_string()))?,
+        })
     }
 }
 
@@ -73,8 +65,8 @@ impl Ord for ORE64v1 {
                 }
             }
         } else {
-            let self_ore = self.ore_ciphertext();
-            let other_ore = other.ore_ciphertext();
+            let self_ore = self.ciphertext().unwrap();
+            let other_ore = other.ciphertext().unwrap();
 
             self_ore.cmp(&other_ore)
         }
@@ -124,8 +116,8 @@ mod tests {
             ca.left = None;
 
             match ca.cmp(&cb) {
-                Ordering::Equal => panic!("This isn't supposed to be able to happen!"),
-                Ordering::Less => a <= b,
+                Ordering::Equal => a == b,
+                Ordering::Less => a < b,
                 Ordering::Greater => a > b,
             }
         }
@@ -137,8 +129,8 @@ mod tests {
             cb.left = None;
 
             match ca.cmp(&cb) {
-                Ordering::Equal => panic!("This isn't supposed to be able to happen!"),
-                Ordering::Less => a <= b,
+                Ordering::Equal => a == b,
+                Ordering::Less => a < b,
                 Ordering::Greater => a > b,
             }
         }
