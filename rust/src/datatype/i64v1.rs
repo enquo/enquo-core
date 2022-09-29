@@ -3,16 +3,16 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use crate::{
-    crypto::{AES256, ORE64},
+    crypto::{AES256v1, ORE64v1},
     Error, Field,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct I64v1 {
     #[serde(rename = "a")]
-    pub aes_ciphertext: AES256,
+    pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: ORE64,
+    pub ore_ciphertext: ORE64v1,
     #[serde(rename = "k")]
     pub key_id: Vec<u8>,
 }
@@ -30,12 +30,12 @@ impl I64v1 {
         ciborium::ser::into_writer(&v, &mut msg)
             .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {}", e)))?;
 
-        let aes = AES256::new(&msg, context, field)?;
+        let aes = AES256v1::new(&msg, context, field)?;
 
         let u: u64 = ((i as i128) + I64_OFFSET)
             .try_into()
             .map_err(|_| Error::EncodingError(format!("failed to convert i64 {} to u64", i)))?;
-        let ore = ORE64::new(u, context, field)?;
+        let ore = ORE64v1::new(u, context, field)?;
 
         Ok(I64v1 {
             aes_ciphertext: aes,
