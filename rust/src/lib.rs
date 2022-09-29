@@ -3,9 +3,9 @@ mod error;
 mod field;
 mod key_provider;
 mod root;
-mod r#type;
+mod datatype;
 
-pub use crate::{error::Error, field::Field, key_provider::KeyProvider, r#type::*, root::Root};
+pub use crate::{error::Error, field::Field, key_provider::KeyProvider, datatype::*, root::Root};
 
 #[cfg(test)]
 #[macro_use]

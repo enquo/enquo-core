@@ -1,4 +1,4 @@
-use crate::{r#type::I64, Error, KeyProvider, Root};
+use crate::{datatype::I64, Error, KeyProvider, Root};
 
 pub struct Field {
     field_key: Vec<u8>,
