@@ -61,6 +61,10 @@ impl I64v1 {
             ))),
         }
     }
+
+    pub fn clear_left_ciphertexts(&mut self) {
+        self.ore_ciphertext.left = None;
+    }
 }
 
 impl Ord for I64v1 {

@@ -7,6 +7,7 @@ use crate::{Error, Field};
 pub enum I64 {
     #[allow(non_camel_case_types)]
     v1(I64v1),
+    Unknown,
 }
 
 impl I64 {
@@ -17,6 +18,14 @@ impl I64 {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         match self {
             I64::v1(i) => i.decrypt(context, field),
+            I64::Unknown => panic!("Can't decrypt Unknown version"),
         }
+    }
+
+    pub fn clear_left_ciphertexts(&mut self) {
+        match self {
+            I64::v1(i) => i.clear_left_ciphertexts(),
+            I64::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+        };
     }
 }
