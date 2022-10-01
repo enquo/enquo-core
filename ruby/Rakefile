@@ -52,6 +52,7 @@ namespace :gem do
 
       desc "Cross-compile a binary gem for #{platform}"
       task platform => :prepare do
+        ENV["RCD_MOUNTDIR"] = File.expand_path("../..", __FILE__)
         RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
           set -e
 
