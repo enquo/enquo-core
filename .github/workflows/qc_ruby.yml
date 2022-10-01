@@ -1,0 +1,82 @@
+name: "Pre-merge Quality-Control: Ruby"
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['2.7', '3.0', '3.1']
+
+    name: "Test"
+
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/ruby/Gemfile
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            ruby/ext/enquo/target/
+            ruby/tmp/x86_64-linux/enquo/*/target/
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
+
+      - name: Run testsuite
+        working-directory: ruby
+        run: |
+          rake test
+
+  qc:
+    runs-on: ubuntu-latest
+    name: "Quality Control"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install rust
+        id: rust-install
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            ruby/ext/enquo/target/
+            ruby/tmp/x86_64-linux/enquo/*/target/
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
+
+      - name: Check formatting
+        working-directory: ruby/ext/enquo
+        run: |
+          cargo fmt --check
+
+      - name: Consult Clippy
+        working-directory: ruby/ext/enquo
+        # The `-A unused-variables` here is because in-function use of rbself in methods!
+        # doesn't get picked up, and Clippy chucks a wobbly
+        run: |
+          cargo clippy -- -D warnings -A unused-variables

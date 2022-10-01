@@ -1,5 +1,12 @@
 [package]
 name = "enquo-core"
+description = "Core library providing encrypted querying operations"
+license = "MIT"
+homepage = "https://enquo.org"
+repository = "https://github.com/enquo/enquo-core"
+keywords = ["encryption", "search", "query", "ore"]
+categories = ["algorithms", "cryptography"]
+exclude = ["/.git*", "Cargo.toml.orig"]
 version = "0.0.0-git"
 edition = "2021"
 

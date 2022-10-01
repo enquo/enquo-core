@@ -18,6 +18,11 @@ Gem::Specification.new do |s|
 	s.email    = ["matt@enquo.org"]
    s.homepage = "https://enquo.org/active_enquo"
 
+	s.metadata["homepage_uri"] = s.homepage
+	s.metadata["source_code_uri"] = "https://github.com/enquo/enquo-core"
+	s.metadata["changelog_uri"] = "https://github.com/enquo/enquo-core/releases"
+	s.metadata["bug_tracker_uri"] = "https://github.com/enquo/enquo-core/issues"
+
 	s.files = `git ls-files -z`.split("\0").reject { |f| f =~ /^(G|spec|Rakefile)/ }
 
 	s.required_ruby_version = ">= 2.7.0"

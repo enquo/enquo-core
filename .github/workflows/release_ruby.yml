@@ -1,0 +1,69 @@
+name: "Release to RubyGems"
+on:
+  # We build both release and pre-release gems for enquo-core, because of the
+  # Rust toolchain build dep
+  push:
+    branch: [main]
+  workflow_dispatch:
+
+jobs:
+  upload_source:
+    runs-on: ubuntu-latest
+    name: "Upload source gem"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+
+      - name: Workaround for https://github.com/actions/checkout/issues/290
+        run: |
+          git fetch --force --tags
+
+      - name: Do The Needful
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        working-directory: ruby
+        run: |
+          rake gem gem:push
+
+  upload_binary:
+    runs-on: ubuntu-latest
+    name: "Upload binary gems"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - x86_64-linux
+          - x86_64-darwin
+          - aarch64-linux
+          - arm64-darwin
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          # `bundler-cache: true` and the build we run via Docker are
+          # not friends
+
+      - name: Workaround for https://github.com/actions/checkout/issues/290
+        run: git fetch --force --tags
+
+      - name: Do The Needful
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        working-directory: ruby
+        run: |
+          bundle install
+          rake gem:cross:${{ matrix.platform }} gem:push
