@@ -4,6 +4,10 @@ on:
   # Rust toolchain build dep
   push:
     branch: [main]
+    paths:
+      - ruby
+      - rust
+      - .github/workflows/release_ruby.yml
   workflow_dispatch:
 
 jobs:
