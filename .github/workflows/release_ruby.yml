@@ -11,6 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     name: "Upload source gem"
 
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/ruby/Gemfile
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -36,6 +39,9 @@ jobs:
   upload_binary:
     runs-on: ubuntu-latest
     name: "Upload binary gems"
+
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/ruby/Gemfile
 
     strategy:
       fail-fast: false
