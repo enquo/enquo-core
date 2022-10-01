@@ -1,7 +1,4 @@
-use cretrit::{
-    aes128v1::ore,
-    SerializableCipherText,
-};
+use cretrit::{aes128v1::ore, SerializableCipherText};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
@@ -32,7 +29,11 @@ impl ORE64v1 {
         })?;
 
         Ok(ORE64v1 {
-            left: Some(ct.left.expect("CAN'T HAPPEN: cipher.encrypt returned ciphertext without left part!").to_vec()),
+            left: Some(
+                ct.left
+                    .expect("CAN'T HAPPEN: cipher.encrypt returned ciphertext without left part!")
+                    .to_vec(),
+            ),
             right: ct.right.to_vec(),
         })
     }
@@ -41,9 +42,13 @@ impl ORE64v1 {
         Ok(ore::CipherText::<8, 256> {
             left: match &self.left {
                 None => None,
-                Some(l) => Some(ore::LeftCipherText::<8, 256>::from_slice(&l).map_err(|e| Error::DecodingError(e.to_string()))?),
+                Some(l) => Some(
+                    ore::LeftCipherText::<8, 256>::from_slice(l)
+                        .map_err(|e| Error::DecodingError(e.to_string()))?,
+                ),
             },
-            right: ore::RightCipherText::<8, 256>::from_slice(&self.right).map_err(|e| Error::DecodingError(e.to_string()))?,
+            right: ore::RightCipherText::<8, 256>::from_slice(&self.right)
+                .map_err(|e| Error::DecodingError(e.to_string()))?,
         })
     }
 }
