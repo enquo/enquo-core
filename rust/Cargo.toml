@@ -4,15 +4,15 @@ version = "0.0.0-git"
 edition = "2021"
 
 [dependencies]
-aes-gcm-siv = "0.11.0"
-ciborium = "0.2.0"
-hmac = "0.12.0"
-cretrit = { git = "ssh+git://github.com/enquo/cretrit" }
-rand_chacha = "0.3.0"
-serde = { version = "1.0.0", features = ["derive"] }
-sha2 = "0.10.0"
-thiserror = "1.0.0"
+aes-gcm-siv = "0.11"
+ciborium = "0.2"
+hmac = "0.12"
+cretrit = "0.1"
+rand_chacha = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+thiserror = "1.0"
 
 [dev-dependencies]
-hex-literal = "0.3.0"
-quickcheck = "1.0.0"
+hex-literal = "0.3"
+quickcheck = "1.0"

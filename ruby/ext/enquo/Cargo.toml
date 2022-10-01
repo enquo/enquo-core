@@ -5,9 +5,9 @@ edition = "2021"
 
 [dependencies]
 enquo-core = { path = "../../../rust" }
-lazy_static = "1.0.0"
-serde_json = "1"
-rb-sys = "0.8.0"
+lazy_static = "1.0"
+serde_json = "1.0"
+rb-sys = "0.8"
 rutie = { git = "https://github.com/mpalmer/rutie", branch = "rb_sys" }
 
 [lib]
