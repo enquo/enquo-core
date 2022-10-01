@@ -34,7 +34,7 @@ jobs:
           GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         working-directory: ruby
         run: |
-          rake gem gem:push
+          bundle exec rake gem gem:push
 
   upload_binary:
     runs-on: ubuntu-latest
@@ -72,4 +72,4 @@ jobs:
         working-directory: ruby
         run: |
           bundle install
-          rake gem:cross:${{ matrix.platform }} gem:push
+          bundle exec rake gem:cross:${{ matrix.platform }} gem:push

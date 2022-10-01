@@ -44,7 +44,7 @@ jobs:
       - name: Run testsuite
         working-directory: ruby
         run: |
-          rake test
+          bundle exec rake test
 
   qc:
     runs-on: ubuntu-latest
