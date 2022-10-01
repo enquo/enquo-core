@@ -3,3 +3,6 @@
 /lib/*.so
 /lib/*.dylib
 /tmp
+/.bundle
+/pkg
+/vendor
