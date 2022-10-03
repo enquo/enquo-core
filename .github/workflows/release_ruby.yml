@@ -5,8 +5,8 @@ on:
   push:
     branch: [main]
     paths:
-      - ruby
-      - rust
+      - ruby/**
+      - rust/**
       - .github/workflows/release_ruby.yml
   workflow_dispatch:
 

@@ -3,14 +3,14 @@ on:
   push:
     branches: [main]
     paths:
-      - ruby
-      - rust
+      - ruby/**
+      - rust/**
       - .github/workflows/qc_ruby.yml
   pull_request:
     branches: [main]
     paths:
-      - ruby
-      - rust
+      - ruby/**
+      - rust/**
       - .github/workflows/qc_ruby.yml
   workflow_dispatch:
 
