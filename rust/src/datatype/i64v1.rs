@@ -22,6 +22,14 @@ const I64_OFFSET: i128 = 9_223_372_036_854_775_808;
 
 impl I64v1 {
     pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
+        Self::encrypt(i, context, field, false)
+    }
+
+    pub fn new_with_unsafe_parts(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
+        Self::encrypt(i, context, field, true)
+    }
+
+    fn encrypt(i: i64, context: &[u8], field: &Field, include_left: bool) -> Result<I64v1, Error> {
         let v = cbor!(i).map_err(|e| {
             Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e))
         })?;
@@ -35,7 +43,12 @@ impl I64v1 {
         let u: u64 = ((i as i128) + I64_OFFSET)
             .try_into()
             .map_err(|_| Error::EncodingError(format!("failed to convert i64 {} to u64", i)))?;
-        let ore = ORE64v1::new(u, context, field)?;
+
+        let ore = if include_left {
+            ORE64v1::new_with_left(u, context, field)?
+        } else {
+            ORE64v1::new(u, context, field)?
+        };
 
         Ok(I64v1 {
             aes_ciphertext: aes,
@@ -60,10 +73,6 @@ impl I64v1 {
                 v
             ))),
         }
-    }
-
-    pub fn clear_left_ciphertexts(&mut self) {
-        self.ore_ciphertext.left = None;
     }
 }
 
@@ -121,5 +130,12 @@ mod tests {
         ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
         dbg!(&s);
         assert!(s.len() < 600, "s.len() == {}", s.len());
+    }
+
+    #[test]
+    fn default_encryption_is_safe() {
+        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
+
+        assert!(matches!(value.ore_ciphertext.left, None));
     }
 }

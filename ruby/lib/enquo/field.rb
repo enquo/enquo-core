@@ -4,7 +4,7 @@ module Enquo
 			raise RuntimeError, "Enquo::Field cannot be instantiated directly; use Enquo::Crypto#field instead"
 		end
 
-		def encrypt_i64(i, ctx)
+		def encrypt_i64(i, ctx, safety: nil)
 			unless i.is_a?(Integer)
 				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers"
 			end
@@ -17,7 +17,7 @@ module Enquo
 				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
 			end
 
-			_encrypt_i64(i, ctx)
+			_encrypt_i64(i, ctx, safety == :unsafe)
 		end
 
 		def decrypt_i64(data, ctx)

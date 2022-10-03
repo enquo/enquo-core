@@ -15,17 +15,14 @@ impl I64 {
         Ok(I64::v1(I64v1::new(i, context, field)?))
     }
 
+    pub fn new_with_unsafe_parts(i: i64, context: &[u8], field: &Field) -> Result<I64, Error> {
+        Ok(I64::v1(I64v1::new_with_unsafe_parts(i, context, field)?))
+    }
+
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         match self {
             I64::v1(i) => i.decrypt(context, field),
             I64::Unknown => panic!("Can't decrypt Unknown version"),
         }
-    }
-
-    pub fn clear_left_ciphertexts(&mut self) {
-        match self {
-            I64::v1(i) => i.clear_left_ciphertexts(),
-            I64::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
-        };
     }
 }

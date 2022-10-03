@@ -1,4 +1,4 @@
-use crate::{datatype::I64, Error, KeyProvider, Root};
+use crate::{Error, KeyProvider, Root};
 
 pub struct Field {
     field_key: Vec<u8>,
@@ -25,10 +25,6 @@ impl Field {
         id.push(0);
         id.extend(name);
         root.derive_key(&id)
-    }
-
-    pub fn i64(&self, i: i64, context: &[u8]) -> Result<I64, Error> {
-        I64::new(i, context, self)
     }
 }
 

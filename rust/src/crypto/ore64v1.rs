@@ -17,24 +17,42 @@ const ORE64v1_KEY_IDENTIFIER: &[u8] = b"ORE64v1.prf_key";
 
 impl ORE64v1 {
     pub fn new(plaintext: u64, _context: &[u8], field: &Field) -> Result<ORE64v1, Error> {
-        let mut key: [u8; 16] = Default::default();
-
-        key.clone_from_slice(&field.subkey(ORE64v1_KEY_IDENTIFIER)?[0..16]);
-
-        let cipher = ore::Cipher::<8, 256>::new(key).map_err(|e| {
-            Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
+        let cipher = Self::cipher(field)?;
+        let ct = cipher.right_encrypt(plaintext.into()).map_err(|e| {
+            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
         })?;
-        let ct = cipher.encrypt(plaintext.into()).map_err(|e| {
+
+        Ok(ORE64v1 {
+            left: None,
+            right: ct.right.to_vec(),
+        })
+    }
+
+    pub fn new_with_left(plaintext: u64, _context: &[u8], field: &Field) -> Result<ORE64v1, Error> {
+        let cipher = Self::cipher(field)?;
+        let ct = cipher.full_encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
         })?;
 
         Ok(ORE64v1 {
             left: Some(
                 ct.left
-                    .expect("CAN'T HAPPEN: cipher.encrypt returned ciphertext without left part!")
+                    .expect(
+                        "CAN'T HAPPEN: cipher.full_encrypt returned ciphertext without left part!",
+                    )
                     .to_vec(),
             ),
             right: ct.right.to_vec(),
+        })
+    }
+
+    fn cipher(field: &Field) -> Result<ore::Cipher<8, 256>, Error> {
+        let mut key: [u8; 16] = Default::default();
+
+        key.clone_from_slice(&field.subkey(ORE64v1_KEY_IDENTIFIER)?[0..16]);
+
+        ore::Cipher::<8, 256>::new(key).map_err(|e| {
+            Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
         })
     }
 
@@ -104,8 +122,8 @@ mod tests {
 
     quickcheck! {
         fn comparison(a: u64, b: u64) -> bool {
-            let ca = ORE64v1::new(a, b"test", &field()).unwrap();
-            let cb = ORE64v1::new(b, b"test", &field()).unwrap();
+            let ca = ORE64v1::new_with_left(a, b"test", &field()).unwrap();
+            let cb = ORE64v1::new_with_left(b, b"test", &field()).unwrap();
 
             match ca.cmp(&cb) {
                 Ordering::Equal => a == b,
@@ -115,10 +133,8 @@ mod tests {
         }
 
         fn comparison_first_missing_left(a: u64, b: u64) -> bool {
-            let mut ca = ORE64v1::new(a, b"test", &field()).unwrap();
-            let cb = ORE64v1::new(b, b"test", &field()).unwrap();
-
-            ca.left = None;
+            let ca = ORE64v1::new(a, b"test", &field()).unwrap();
+            let cb = ORE64v1::new_with_left(b, b"test", &field()).unwrap();
 
             match ca.cmp(&cb) {
                 Ordering::Equal => a == b,
@@ -128,10 +144,8 @@ mod tests {
         }
 
         fn comparison_second_missing_left(a: u64, b: u64) -> bool {
-            let ca = ORE64v1::new(a, b"test", &field()).unwrap();
-            let mut cb = ORE64v1::new(b, b"test", &field()).unwrap();
-
-            cb.left = None;
+            let ca = ORE64v1::new_with_left(a, b"test", &field()).unwrap();
+            let cb = ORE64v1::new(b, b"test", &field()).unwrap();
 
             match ca.cmp(&cb) {
                 Ordering::Equal => a == b,

@@ -2,7 +2,7 @@
 extern crate rutie;
 
 use enquo_core::{Field, Root, I64};
-use rutie::{Class, Integer, Module, Object, RString, VerifiedObject, VM};
+use rutie::{Boolean, Class, Integer, Module, Object, RString, VerifiedObject, VM};
 
 class!(EnquoRoot);
 class!(EnquoRootKeyStatic);
@@ -81,12 +81,16 @@ impl VerifiedObject for EnquoRootKeyStatic {
 methods!(
     EnquoField,
     rbself,
-    fn enquo_field_encrypt_i64(value: Integer, context: RString) -> RString {
+    fn enquo_field_encrypt_i64(value: Integer, context: RString, unsafe_parts: Boolean) -> RString {
         let i = value.unwrap().to_i64();
         let field = rbself.get_data(&*FIELD_WRAPPER);
 
         let res = maybe_raise(
-            field.i64(i, &context.unwrap().to_vec_u8_unchecked()),
+            if unsafe_parts.unwrap().to_bool() {
+                I64::new_with_unsafe_parts(i, &context.unwrap().to_vec_u8_unchecked(), field)
+            } else {
+                I64::new(i, &context.unwrap().to_vec_u8_unchecked(), field)
+            },
             "Failed to create encrypted i64",
         );
         RString::new_utf8(&serde_json::to_string(&res).unwrap())
