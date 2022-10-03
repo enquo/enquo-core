@@ -13,7 +13,7 @@ pub struct I64v1 {
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
     pub ore_ciphertext: ORE64v1,
-    #[serde(rename = "k")]
+    #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
 
@@ -99,16 +99,27 @@ mod tests {
 
     #[test]
     fn value_round_trips() {
-        let cipher = I64v1::new(42, b"context", &field()).unwrap();
+        let value = I64v1::new(42, b"context", &field()).unwrap();
 
-        assert_eq!(42, cipher.decrypt(b"context", &field()).unwrap());
+        assert_eq!(42, value.decrypt(b"context", &field()).unwrap());
     }
 
     #[test]
     fn incorrect_context_fails() {
-        let cipher = I64v1::new(42, b"somecontext", &field()).unwrap();
+        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
 
-        let err = cipher.decrypt(b"othercontext", &field()).err();
+        let err = value.decrypt(b"othercontext", &field()).err();
         assert!(matches!(err, Some(Error::DecryptionError(_))));
+    }
+
+    #[test]
+    fn serialised_ciphertext_size() {
+        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
+        let serde_value = cbor!(value).unwrap();
+
+        let mut s: Vec<u8> = vec![];
+        ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
+        dbg!(&s);
+        assert!(s.len() < 600, "s.len() == {}", s.len());
     }
 }

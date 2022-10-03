@@ -6,9 +6,9 @@ use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ORE64v1 {
-    #[serde(rename = "l")]
+    #[serde(rename = "l", with = "serde_bytes")]
     pub left: Option<Vec<u8>>,
-    #[serde(rename = "r")]
+    #[serde(rename = "r", with = "serde_bytes")]
     pub right: Vec<u8>,
 }
 

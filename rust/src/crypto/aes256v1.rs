@@ -9,9 +9,9 @@ use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AES256v1 {
-    #[serde(rename = "iv")]
+    #[serde(rename = "iv", with = "serde_bytes")]
     nonce: Vec<u8>,
-    #[serde(rename = "ct")]
+    #[serde(rename = "ct", with = "serde_bytes")]
     ciphertext: Vec<u8>,
 }
 
