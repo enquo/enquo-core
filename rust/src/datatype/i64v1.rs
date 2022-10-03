@@ -12,7 +12,7 @@ pub struct I64v1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: ORE64v1,
+    pub ore_ciphertext: Option<ORE64v1>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -52,7 +52,7 @@ impl I64v1 {
 
         Ok(I64v1 {
             aes_ciphertext: aes,
-            ore_ciphertext: ore,
+            ore_ciphertext: Some(ore),
             key_id: field.key_id()?,
         })
     }
@@ -74,11 +74,24 @@ impl I64v1 {
             ))),
         }
     }
+
+    pub fn drop_ore_ciphertext(&mut self) {
+        self.ore_ciphertext = None;
+    }
 }
 
 impl Ord for I64v1 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.ore_ciphertext.cmp(&other.ore_ciphertext)
+        let lhs = self
+            .ore_ciphertext
+            .as_ref()
+            .expect("Cannot compare without an ORE ciphertext on the left-hand side");
+        let rhs = other
+            .ore_ciphertext
+            .as_ref()
+            .expect("Cannot compare without an ORE ciphertext on the right-hand side");
+
+        lhs.cmp(rhs)
     }
 }
 
@@ -136,6 +149,6 @@ mod tests {
     fn default_encryption_is_safe() {
         let value = I64v1::new(42, b"somecontext", &field()).unwrap();
 
-        assert!(matches!(value.ore_ciphertext.left, None));
+        assert!(matches!(value.ore_ciphertext.unwrap().left, None));
     }
 }

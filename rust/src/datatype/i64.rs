@@ -25,4 +25,11 @@ impl I64 {
             I64::Unknown => panic!("Can't decrypt Unknown version"),
         }
     }
+
+    pub fn drop_ore_ciphertext(&mut self) {
+        match self {
+            I64::v1(i) => i.drop_ore_ciphertext(),
+            I64::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+        }
+    }
 }
