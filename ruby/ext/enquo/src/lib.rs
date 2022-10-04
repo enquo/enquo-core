@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate rutie;
 
-use enquo_core::{Field, Root, I64};
-use rutie::{Class, Integer, Module, Object, RString, Symbol, VerifiedObject, VM};
+use enquo_core::{Date, Field, Root, I64};
+use rutie::{AnyObject, Class, Integer, Module, Object, RString, Symbol, VerifiedObject, VM};
 
 class!(EnquoRoot);
 class!(EnquoRootKeyStatic);
@@ -57,7 +57,8 @@ methods!(
     EnquoRootKeyStatic,
     _rbself,
     fn enquo_root_key_static_new(root_key: RString) -> EnquoRootKeyStatic {
-        let k = root_key.unwrap().to_vec_u8_unchecked();
+        #[allow(clippy::redundant_clone)]
+        let k = root_key.unwrap().to_vec_u8_unchecked().to_owned();
         let klass = Module::from_existing("Enquo")
             .get_nested_class("RootKey")
             .get_nested_class("Static");
@@ -78,6 +79,8 @@ impl VerifiedObject for EnquoRootKeyStatic {
     }
 }
 
+// rustfmt fucks this so it doesn't compile
+#[rustfmt::skip]
 methods!(
     EnquoField,
     rbself,
@@ -114,6 +117,58 @@ methods!(
             "Failed to decrypt i64 value",
         );
         Integer::from(value)
+    },
+    fn enquo_field_encrypt_date(
+        y_r: Integer,
+        m_r: Integer,
+        d_r: Integer,
+        context: RString,
+        mode: Symbol
+    ) -> RString {
+        let y = y_r.unwrap().to_i32() as i16;
+        let m = m_r.unwrap().to_i32() as u8;
+        let d = d_r.unwrap().to_i32() as u8;
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+        let r_mode = mode.unwrap();
+        let s_mode = r_mode.to_str();
+
+        let mut res = maybe_raise(
+            if s_mode == "unsafe" {
+                Date::new_with_unsafe_parts(
+                    (y, m, d),
+                    &context.unwrap().to_vec_u8_unchecked(),
+                    field,
+                )
+            } else {
+                Date::new((y, m, d), &context.unwrap().to_vec_u8_unchecked(), field)
+            },
+            "Failed to create encrypted date",
+        );
+        if s_mode == "no_query" {
+            res.drop_ore_ciphertexts();
+        }
+
+        RString::new_utf8(&serde_json::to_string(&res).unwrap())
+    },
+    fn enquo_field_decrypt_date(ciphertext: RString, context: RString) -> AnyObject {
+        let ct_r = ciphertext.unwrap();
+        let ct = ct_r.to_str_unchecked();
+        let e_value: Date =
+            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let (y, m, d) = maybe_raise(
+            e_value.decrypt(&context.unwrap().to_vec_u8_unchecked(), field),
+            "Failed to decrypt date value",
+        );
+        let klass = Class::from_existing("Date");
+        let args: [AnyObject; 3] = [
+            Integer::from(y as i32).into(),
+            Integer::from(m as i32).into(),
+            Integer::from(d as i32).into(),
+        ];
+        klass.protect_send("new", &args).unwrap()
     }
 );
 
@@ -135,6 +190,8 @@ pub extern "C" fn Init_enquo() {
             .define(|fieldklass| {
                 fieldklass.def_private("_encrypt_i64", enquo_field_encrypt_i64);
                 fieldklass.def_private("_decrypt_i64", enquo_field_decrypt_i64);
+                fieldklass.def_private("_encrypt_date", enquo_field_encrypt_date);
+                fieldklass.def_private("_decrypt_date", enquo_field_decrypt_date);
             });
         topmod.define_nested_module("RootKey").define(|rkmod| {
             rkmod
