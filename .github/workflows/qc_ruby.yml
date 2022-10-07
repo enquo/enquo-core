@@ -87,4 +87,4 @@ jobs:
         # The `-A unused-variables` here is because in-function use of rbself in methods!
         # doesn't get picked up, and Clippy chucks a wobbly
         run: |
-          cargo clippy -- -D warnings -A unused-variables
+          cargo clippy -- -D clippy::dbg_macro -D warnings -A unused-variables

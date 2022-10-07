@@ -141,7 +141,6 @@ mod tests {
 
         let mut s: Vec<u8> = vec![];
         ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
-        dbg!(&s);
         assert!(s.len() < 600, "s.len() == {}", s.len());
     }
 
