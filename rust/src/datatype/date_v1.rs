@@ -152,11 +152,13 @@ impl Eq for DateV1 {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Root;
+    use crate::{key_provider::Static, Root};
 
     fn field() -> Field {
-        let k: &[u8] = b"testkey";
-        Root::new(&k).unwrap().field(b"foo", b"bar").unwrap()
+        Root::new(&Static::new(b"testkey"))
+            .unwrap()
+            .field(b"foo", b"bar")
+            .unwrap()
     }
 
     #[test]

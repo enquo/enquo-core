@@ -21,10 +21,11 @@ impl Root<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::key_provider::Static;
 
     #[test]
     fn generates_a_field() {
-        let k: &[u8] = &[0; 32];
+        let k = Static::new(&[0; 32]);
         let root = Root::new(&k).unwrap();
         root.field(b"users", b"full_name").unwrap();
     }

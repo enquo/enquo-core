@@ -1,14 +1,16 @@
-use crate::{Error, KeyProvider, Root};
+use crate::{key_provider::Static, Error, KeyProvider, Root};
 
 pub struct Field {
-    field_key: Vec<u8>,
+    field_key: Static,
 }
 
 impl Field {
     pub fn new(root: &Root, collection: &[u8], name: &[u8]) -> Result<Field, Error> {
         let field_key = Self::field_key(root, collection, name)?;
 
-        Ok(Field { field_key })
+        Ok(Field {
+            field_key: Static::new(&field_key),
+        })
     }
 
     pub fn subkey(&self, identifier: &[u8]) -> Result<Vec<u8>, Error> {
@@ -31,11 +33,12 @@ impl Field {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::key_provider::Static;
     use hex_literal::hex;
 
     #[test]
     fn derives_field_key_correctly() {
-        let rk: &[u8] = b"testkey";
+        let rk = Static::new(b"testkey");
         let f = Root::new(&rk)
             .unwrap()
             .field(b"users", b"full_name")
@@ -43,7 +46,7 @@ mod tests {
 
         assert_eq!(
             hex!["382beeb4093bc280 163017113af33e12 ca5d55b84e42e1b9 758d66ddcbd9b9d8"].to_vec(),
-            f.field_key
+            f.field_key.key()
         );
     }
 }

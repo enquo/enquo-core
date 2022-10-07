@@ -113,11 +113,13 @@ impl Eq for ORE64v1 {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Field, Root};
+    use crate::{key_provider::Static, Field, Root};
 
     fn field() -> Field {
-        let rk: &[u8] = b"testkey";
-        Root::new(&rk).unwrap().field(b"foo", b"bar").unwrap()
+        Root::new(&Static::new(b"testkey"))
+            .unwrap()
+            .field(b"foo", b"bar")
+            .unwrap()
     }
 
     quickcheck! {

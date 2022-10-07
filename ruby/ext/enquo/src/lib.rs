@@ -1,17 +1,19 @@
 #[macro_use]
 extern crate rutie;
 
-use enquo_core::{Date, Field, Root, I64};
+use enquo_core::{key_provider, Date, Field, Root, I64};
 use rutie::{AnyObject, Class, Integer, Module, Object, RString, Symbol, VerifiedObject, VM};
 
 class!(EnquoRoot);
 class!(EnquoRootKeyStatic);
 class!(EnquoField);
 
-type StaticRootKey = Vec<u8>;
-
 wrappable_struct!(Root<'static>, RootWrapper, ROOT_WRAPPER);
-wrappable_struct!(StaticRootKey, StaticRootKeyWrapper, STATIC_ROOT_KEY_WRAPPER);
+wrappable_struct!(
+    key_provider::Static,
+    StaticRootKeyWrapper,
+    STATIC_ROOT_KEY_WRAPPER
+);
 wrappable_struct!(Field, FieldWrapper, FIELD_WRAPPER);
 
 fn maybe_raise<T, E: std::error::Error>(r: Result<T, E>, s: &str) -> T {
@@ -24,27 +26,24 @@ fn maybe_raise<T, E: std::error::Error>(r: Result<T, E>, s: &str) -> T {
     .unwrap()
 }
 
-methods!(
+unsafe_methods!(
     EnquoRoot,
     rbself,
     fn enquo_root_new_from_static_root_key(root_key_obj: EnquoRootKeyStatic) -> EnquoRoot {
-        let root_key = root_key_obj.unwrap();
-        // Not so needless after all, Clippy...
-        #[allow(clippy::needless_borrow)]
-        let rk = root_key.get_data(&*STATIC_ROOT_KEY_WRAPPER);
+        let rk = root_key_obj.get_data(&*STATIC_ROOT_KEY_WRAPPER);
         let root = maybe_raise(Root::new(rk), "Failed to create Enquo::Root");
 
         let klass = Module::from_existing("Enquo").get_nested_class("Root");
         klass.wrap_data(root, &*ROOT_WRAPPER)
     },
-    fn enquo_root_field(relation: RString, name: RString) -> EnquoField {
+    fn enquo_root_field(relation_obj: RString, name_obj: RString) -> EnquoField {
+        let relation = relation_obj.to_vec_u8_unchecked();
+        let name = name_obj.to_vec_u8_unchecked();
+
         let root = rbself.get_data(&*ROOT_WRAPPER);
 
         let field = maybe_raise(
-            root.field(
-                &relation.unwrap().to_vec_u8_unchecked(),
-                &name.unwrap().to_vec_u8_unchecked(),
-            ),
+            root.field(&relation, &name),
             "Failed to create Enquo::Field",
         );
 
@@ -53,12 +52,13 @@ methods!(
     }
 );
 
-methods!(
+unsafe_methods!(
     EnquoRootKeyStatic,
     _rbself,
-    fn enquo_root_key_static_new(root_key: RString) -> EnquoRootKeyStatic {
-        #[allow(clippy::redundant_clone)]
-        let k = root_key.unwrap().to_vec_u8_unchecked().to_owned();
+    fn enquo_root_key_static_new(root_key_obj: RString) -> EnquoRootKeyStatic {
+        let root_key = root_key_obj.to_vec_u8_unchecked();
+
+        let k = key_provider::Static::new(&root_key);
         let klass = Module::from_existing("Enquo")
             .get_nested_class("RootKey")
             .get_nested_class("Static");
@@ -81,85 +81,90 @@ impl VerifiedObject for EnquoRootKeyStatic {
 
 // rustfmt fucks this so it doesn't compile
 #[rustfmt::skip]
-methods!(
+unsafe_methods!(
     EnquoField,
     rbself,
-    fn enquo_field_encrypt_i64(value: Integer, context: RString, mode: Symbol) -> RString {
-        let i = value.unwrap().to_i64();
+    fn enquo_field_encrypt_i64(i_obj: Integer, context_obj: RString, mode_obj: Symbol) -> RString {
+        let i = i_obj.to_i64();
+        let context = context_obj.to_vec_u8_unchecked();
+        let mode = mode_obj.to_str();
+
         let field = rbself.get_data(&*FIELD_WRAPPER);
-        let r_mode = mode.unwrap();
-        let s_mode = r_mode.to_str();
 
         let mut res = maybe_raise(
-            if s_mode == "unsafe" {
-                I64::new_with_unsafe_parts(i, &context.unwrap().to_vec_u8_unchecked(), field)
+            if mode == "unsafe" {
+                I64::new_with_unsafe_parts(i, &context, field)
             } else {
-                I64::new(i, &context.unwrap().to_vec_u8_unchecked(), field)
+                I64::new(i, &context, field)
             },
             "Failed to create encrypted i64",
         );
-        if s_mode == "no_query" {
+        if mode == "no_query" {
             res.drop_ore_ciphertext();
         }
 
-        RString::new_utf8(&serde_json::to_string(&res).unwrap())
+        RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
     },
-    fn enquo_field_decrypt_i64(ciphertext: RString, context: RString) -> Integer {
-        let ct_r = ciphertext.unwrap();
-        let ct = ct_r.to_str_unchecked();
-        let e_value: I64 =
-            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+    fn enquo_field_decrypt_i64(ciphertext_obj: RString, context_obj: RString) -> Integer {
+        let ct = ciphertext_obj.to_str_unchecked();
+        let context = context_obj.to_vec_u8_unchecked();
 
         let field = rbself.get_data(&*FIELD_WRAPPER);
 
+        let e_value: I64 =
+            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+
+
         let value = maybe_raise(
-            e_value.decrypt(&context.unwrap().to_vec_u8_unchecked(), field),
+            e_value.decrypt(&context, field),
             "Failed to decrypt i64 value",
         );
         Integer::from(value)
     },
     fn enquo_field_encrypt_date(
-        y_r: Integer,
-        m_r: Integer,
-        d_r: Integer,
-        context: RString,
-        mode: Symbol
+        y_obj: Integer,
+        m_obj: Integer,
+        d_obj: Integer,
+        context_obj: RString,
+        mode_obj: Symbol
     ) -> RString {
-        let y = y_r.unwrap().to_i32() as i16;
-        let m = m_r.unwrap().to_i32() as u8;
-        let d = d_r.unwrap().to_i32() as u8;
+        let y = y_obj.to_i32() as i16;
+        let m = m_obj.to_i32() as u8;
+        let d = d_obj.to_i32() as u8;
+        let context = context_obj.to_vec_u8_unchecked();
+        let mode = mode_obj.to_str();
+
         let field = rbself.get_data(&*FIELD_WRAPPER);
-        let r_mode = mode.unwrap();
-        let s_mode = r_mode.to_str();
 
         let mut res = maybe_raise(
-            if s_mode == "unsafe" {
+            if mode == "unsafe" {
                 Date::new_with_unsafe_parts(
                     (y, m, d),
-                    &context.unwrap().to_vec_u8_unchecked(),
+                    &context,
                     field,
                 )
             } else {
-                Date::new((y, m, d), &context.unwrap().to_vec_u8_unchecked(), field)
+                Date::new((y, m, d), &context, field)
             },
             "Failed to create encrypted date",
         );
-        if s_mode == "no_query" {
+        if mode == "no_query" {
             res.drop_ore_ciphertexts();
         }
 
-        RString::new_utf8(&serde_json::to_string(&res).unwrap())
+        RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
     },
-    fn enquo_field_decrypt_date(ciphertext: RString, context: RString) -> AnyObject {
-        let ct_r = ciphertext.unwrap();
-        let ct = ct_r.to_str_unchecked();
-        let e_value: Date =
-            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+    fn enquo_field_decrypt_date(ciphertext_obj: RString, context_obj: RString) -> AnyObject {
+        let ct = ciphertext_obj.to_str_unchecked();
+        let context = context_obj.to_vec_u8_unchecked();
 
         let field = rbself.get_data(&*FIELD_WRAPPER);
 
+        let e_value: Date =
+            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+
         let (y, m, d) = maybe_raise(
-            e_value.decrypt(&context.unwrap().to_vec_u8_unchecked(), field),
+            e_value.decrypt(&context, field),
             "Failed to decrypt date value",
         );
         let klass = Class::from_existing("Date");

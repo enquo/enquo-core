@@ -1,4 +1,5 @@
-mod slice;
+mod r#static;
+pub use r#static::Static;
 
 use crate::Error;
 
