@@ -54,12 +54,12 @@ impl DateV1 {
         let s_date = StoredDate { y, m, d };
 
         let v = cbor!(s_date).map_err(|e| {
-            Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e))
+            Error::EncodingError(format!("failed to convert date to ciborium value: {}", e))
         })?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
-            .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to encode date value: {}", e)))?;
 
         let aes = AES256v1::new(&msg, context, field)?;
 

@@ -69,5 +69,41 @@ module Enquo
 
 			_decrypt_date(data, ctx)
 		end
+
+		def encrypt_text(t, ctx, safety: true, no_query: false)
+			unless t.is_a?(String)
+				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt Strings"
+			end
+
+			unless t.encoding == Encoding::UTF_8
+				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt UTF-8 strings (got a string encoding of #{t.encoding})"
+			end
+
+			unless t.valid_encoding?
+				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt validly-encoded UTF-8 strings"
+			end
+
+			unless ctx.is_a?(String)
+				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+			end
+
+			_encrypt_text(t, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
+		end
+
+		def decrypt_text(data, ctx)
+			unless data.is_a?(String)
+				raise ArgumentError, "Enquo::Field#decrypt_text can only decrypt from a string (got #{data.class})"
+			end
+
+			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
+				raise ArgumentError, "Enquo::Field#decrypt_date can only decrypt validly-encoded UTF-8 strings (got #{data.encoding})"
+			end
+
+			unless ctx.is_a?(String)
+				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+			end
+
+			_decrypt_text(data, ctx)
+		end
 	end
 end

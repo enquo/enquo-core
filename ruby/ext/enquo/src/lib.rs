@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rutie;
 
-use enquo_core::{key_provider, Date, Field, Root, I64};
+use enquo_core::{key_provider, Date, Field, Root, Text, I64};
 use rutie::{AnyObject, Class, Integer, Module, Object, RString, Symbol, VerifiedObject, VM};
 
 class!(EnquoRoot);
@@ -175,6 +175,48 @@ unsafe_methods!(
         ];
         klass.protect_send("new", &args).unwrap()
     }
+    fn enquo_field_encrypt_text(
+        text_obj: RString,
+        context_obj: RString,
+        mode_obj: Symbol
+    ) -> RString {
+        let text = text_obj.to_str();
+        let context = context_obj.to_vec_u8_unchecked();
+        let mode = mode_obj.to_str();
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let mut res = maybe_raise(
+            if mode == "unsafe" {
+                Text::new_with_unsafe_parts(
+                    text,
+                    &context,
+                    field,
+                )
+            } else {
+                Text::new(text, &context, field)
+            },
+            "Failed to create encrypted date",
+        );
+        if mode == "no_query" {
+            res.make_unqueryable();
+        }
+
+        RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
+    },
+    fn enquo_field_decrypt_text(ciphertext_obj: RString, context_obj: RString) -> RString {
+        let ct = ciphertext_obj.to_str_unchecked();
+        let context = context_obj.to_vec_u8_unchecked();
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let e_value: Text =
+            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+
+        let s = maybe_raise(e_value.decrypt(&context, field), "Failed to decrypt text value");
+
+        RString::new_utf8(&s)
+    }
 );
 
 #[allow(non_snake_case)]
@@ -197,6 +239,8 @@ pub extern "C" fn Init_enquo() {
                 fieldklass.def_private("_decrypt_i64", enquo_field_decrypt_i64);
                 fieldklass.def_private("_encrypt_date", enquo_field_encrypt_date);
                 fieldklass.def_private("_decrypt_date", enquo_field_decrypt_date);
+                fieldklass.def_private("_encrypt_text", enquo_field_encrypt_text);
+                fieldklass.def_private("_decrypt_text", enquo_field_decrypt_text);
             });
         topmod.define_nested_module("RootKey").define(|rkmod| {
             rkmod
