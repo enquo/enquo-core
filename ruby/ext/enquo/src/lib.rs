@@ -100,7 +100,7 @@ unsafe_methods!(
             "Failed to create encrypted i64",
         );
         if mode == "no_query" {
-            res.drop_ore_ciphertext();
+            res.make_unqueryable();
         }
 
         RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
@@ -149,7 +149,7 @@ unsafe_methods!(
             "Failed to create encrypted date",
         );
         if mode == "no_query" {
-            res.drop_ore_ciphertexts();
+            res.make_unqueryable();
         }
 
         RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))

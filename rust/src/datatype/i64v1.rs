@@ -75,7 +75,7 @@ impl I64v1 {
         }
     }
 
-    pub fn drop_ore_ciphertext(&mut self) {
+    pub fn make_unqueryable(&mut self) {
         self.ore_ciphertext = None;
     }
 }

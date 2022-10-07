@@ -102,7 +102,7 @@ impl DateV1 {
         Ok((s_date.y, s_date.m, s_date.d))
     }
 
-    pub fn drop_ore_ciphertexts(&mut self) {
+    pub fn make_unqueryable(&mut self) {
         self.year_ciphertext = None;
         self.month_ciphertext = None;
         self.day_ciphertext = None;

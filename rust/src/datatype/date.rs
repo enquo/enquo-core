@@ -32,10 +32,10 @@ impl Date {
         }
     }
 
-    pub fn drop_ore_ciphertexts(&mut self) {
+    pub fn make_unqueryable(&mut self) {
         match self {
-            Date::v1(d) => d.drop_ore_ciphertexts(),
-            Date::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+            Date::v1(d) => d.make_unqueryable(),
+            Date::Unknown => panic!("Can't make Unknown version unqueryable"),
         }
     }
 }

@@ -26,10 +26,10 @@ impl I64 {
         }
     }
 
-    pub fn drop_ore_ciphertext(&mut self) {
+    pub fn make_unqueryable(&mut self) {
         match self {
-            I64::v1(i) => i.drop_ore_ciphertext(),
-            I64::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+            I64::v1(i) => i.make_unqueryable(),
+            I64::Unknown => panic!("Can't make Unknown version unqueryable"),
         }
     }
 }
