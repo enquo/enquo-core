@@ -73,8 +73,8 @@ impl ORE6v1 {
 
 impl Ord for ORE6v1 {
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.left == None {
-            if other.left == None {
+        if self.left.is_none() {
+            if other.left.is_none() {
                 panic!("Neither value in the comparison contains a left ORE ciphertext!");
             } else {
                 // The left-hand operand needs to have a left ciphertext

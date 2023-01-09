@@ -72,8 +72,8 @@ impl ERE64v1 {
 
 impl PartialEq for ERE64v1 {
     fn eq(&self, other: &Self) -> bool {
-        if self.left == None {
-            if other.left == None {
+        if self.left.is_none() {
+            if other.left.is_none() {
                 panic!("Neither value in the comparison contains a left ERE ciphertext!");
             } else {
                 // The left-hand operand needs to have a left ciphertext
