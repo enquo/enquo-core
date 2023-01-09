@@ -25,3 +25,4 @@ unicode-normalization = "0.1"
 [dev-dependencies]
 hex-literal = "0.3"
 quickcheck = "1.0"
+rand = "0.8"
