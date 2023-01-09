@@ -1,10 +1,13 @@
-This repository contains the [enquo](https://enquo.org) "core" library for all supported languages.
+This repository contains the [Enquo](https://enquo.org) "core" library for all supported languages.
 It provides basic cryptographic operations and support functions which can be used to build higher-level integrations with ORMs and application development stacks.
 
+Each supported language provides the same functionality, and as such we maintain a common versioning scheme across all languages.
+Details of how to build, install, and use each language's library should be contained in the README in that language's subdirectory.
 
 # Contributing
 
 For general guidelines for contributions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+More detailed language-specific guidance will be in the README in the relevant language's subdirectory.
 
 
 # Licence
