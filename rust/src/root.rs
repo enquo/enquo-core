@@ -1,7 +1,7 @@
 use crate::{Error, Field, KeyProvider};
 
 pub struct Root<'a> {
-    pub key_provider: &'a dyn KeyProvider,
+    key_provider: &'a dyn KeyProvider,
 }
 
 impl Root<'_> {
