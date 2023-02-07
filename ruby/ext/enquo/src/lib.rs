@@ -20,7 +20,7 @@ fn maybe_raise<T, E: std::error::Error>(r: Result<T, E>, s: &str) -> T {
     r.map_err(|e| {
         VM::raise(
             Class::from_existing("Enquo").get_nested_class("Error"),
-            &format!("{}: {}", s, e),
+            &format!("{s}: {e}"),
         )
     })
     .unwrap()

@@ -18,7 +18,7 @@ impl ERE64v1 {
     pub fn new(plaintext: u64, _context: &[u8], field: &Field) -> Result<ERE64v1, Error> {
         let cipher = Self::cipher(field)?;
         let ct = cipher.right_encrypt(plaintext.into()).map_err(|e| {
-            Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {:?}", e))
+            Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {e:?}"))
         })?;
 
         Ok(ERE64v1 {
@@ -30,7 +30,7 @@ impl ERE64v1 {
     pub fn new_with_left(plaintext: u64, _context: &[u8], field: &Field) -> Result<ERE64v1, Error> {
         let cipher = Self::cipher(field)?;
         let ct = cipher.full_encrypt(plaintext.into()).map_err(|e| {
-            Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {:?}", e))
+            Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {e:?}"))
         })?;
 
         Ok(ERE64v1 {
@@ -50,9 +50,8 @@ impl ERE64v1 {
 
         key.clone_from_slice(&field.subkey(ERE64v1_KEY_IDENTIFIER)?[0..16]);
 
-        ere::Cipher::<16, 16>::new(key).map_err(|e| {
-            Error::EncryptionError(format!("Failed to initialize ERE cipher: {:?}", e))
-        })
+        ere::Cipher::<16, 16>::new(key)
+            .map_err(|e| Error::EncryptionError(format!("Failed to initialize ERE cipher: {e:?}")))
     }
 
     fn ciphertext(&self) -> Result<ere::CipherText<16, 16>, Error> {

@@ -54,18 +54,18 @@ impl DateV1 {
         let s_date = StoredDate { y, m, d };
 
         let v = cbor!(s_date).map_err(|e| {
-            Error::EncodingError(format!("failed to convert date to ciborium value: {}", e))
+            Error::EncodingError(format!("failed to convert date to ciborium value: {e}"))
         })?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
-            .map_err(|e| Error::EncodingError(format!("failed to encode date value: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to encode date value: {e}")))?;
 
         let aes = AES256v1::new(&msg, context, field)?;
 
-        let uy: u16 = ((y as i32) + I16_OFFSET).try_into().map_err(|_| {
-            Error::EncodingError(format!("failed to convert i16 year {} to u16", y))
-        })?;
+        let uy: u16 = ((y as i32) + I16_OFFSET)
+            .try_into()
+            .map_err(|_| Error::EncodingError(format!("failed to convert i16 year {y} to u16")))?;
 
         let ore_year = if include_left {
             ORE16v1::new_with_left(uy, context, field)?
@@ -95,9 +95,8 @@ impl DateV1 {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<(i16, u8, u8), Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
-        let s_date = ciborium::de::from_reader::<'_, StoredDate, &[u8]>(&*pt).map_err(|e| {
-            Error::DecodingError(format!("could not decode decrypted value: {}", e))
-        })?;
+        let s_date = ciborium::de::from_reader::<'_, StoredDate, &[u8]>(&*pt)
+            .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
         Ok((s_date.y, s_date.m, s_date.d))
     }

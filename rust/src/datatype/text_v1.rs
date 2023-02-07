@@ -44,12 +44,12 @@ impl TextV1 {
         allow_unsafe: bool,
     ) -> Result<TextV1, Error> {
         let v = cbor!(text).map_err(|e| {
-            Error::EncodingError(format!("failed to convert string to ciborium value: {}", e))
+            Error::EncodingError(format!("failed to convert string to ciborium value: {e}"))
         })?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
-            .map_err(|e| Error::EncodingError(format!("failed to encode string value: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to encode string value: {e}")))?;
 
         let aes = AES256v1::new(&msg, context, field)?;
 
@@ -79,9 +79,8 @@ impl TextV1 {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<String, Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
-        let s_text = ciborium::de::from_reader::<'_, String, &[u8]>(&*pt).map_err(|e| {
-            Error::DecodingError(format!("could not decode decrypted value: {}", e))
-        })?;
+        let s_text = ciborium::de::from_reader::<'_, String, &[u8]>(&*pt)
+            .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
         Ok(s_text)
     }

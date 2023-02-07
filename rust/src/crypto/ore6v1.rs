@@ -19,7 +19,7 @@ impl ORE6v1 {
     pub fn new(plaintext: u8, _context: &[u8], field: &Field) -> Result<ORE6v1, Error> {
         let cipher = Self::cipher(field)?;
         let ct = cipher.right_encrypt(plaintext.into()).map_err(|e| {
-            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
+            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {e:?}"))
         })?;
 
         Ok(ORE6v1 {
@@ -31,7 +31,7 @@ impl ORE6v1 {
     pub fn new_with_left(plaintext: u8, _context: &[u8], field: &Field) -> Result<ORE6v1, Error> {
         let cipher = Self::cipher(field)?;
         let ct = cipher.full_encrypt(plaintext.into()).map_err(|e| {
-            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {:?}", e))
+            Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {e:?}"))
         })?;
 
         Ok(ORE6v1 {
@@ -51,9 +51,8 @@ impl ORE6v1 {
 
         key.clone_from_slice(&field.subkey(ORE6v1_KEY_IDENTIFIER)?[0..16]);
 
-        ore::Cipher::<1, 32>::new(key).map_err(|e| {
-            Error::EncryptionError(format!("Failed to initialize ORE cipher: {:?}", e))
-        })
+        ore::Cipher::<1, 32>::new(key)
+            .map_err(|e| Error::EncryptionError(format!("Failed to initialize ORE cipher: {e:?}")))
     }
 
     fn ciphertext(&self) -> Result<ore::CipherText<1, 32>, Error> {

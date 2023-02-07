@@ -31,18 +31,18 @@ impl I64v1 {
 
     fn encrypt(i: i64, context: &[u8], field: &Field, include_left: bool) -> Result<I64v1, Error> {
         let v = cbor!(i).map_err(|e| {
-            Error::EncodingError(format!("failed to convert i64 to ciborium value: {}", e))
+            Error::EncodingError(format!("failed to convert i64 to ciborium value: {e}"))
         })?;
 
         let mut msg: Vec<u8> = Default::default();
         ciborium::ser::into_writer(&v, &mut msg)
-            .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {}", e)))?;
+            .map_err(|e| Error::EncodingError(format!("failed to encode i64 value: {e}")))?;
 
         let aes = AES256v1::new(&msg, context, field)?;
 
         let u: u64 = ((i as i128) + I64_OFFSET)
             .try_into()
-            .map_err(|_| Error::EncodingError(format!("failed to convert i64 {} to u64", i)))?;
+            .map_err(|_| Error::EncodingError(format!("failed to convert i64 {i} to u64")))?;
 
         let ore = if include_left {
             ORE64v1::new_with_left(u, context, field)?
@@ -60,17 +60,15 @@ impl I64v1 {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
-        let v = ciborium::de::from_reader(&*pt).map_err(|e| {
-            Error::DecodingError(format!("could not decode decrypted value: {}", e))
-        })?;
+        let v = ciborium::de::from_reader(&*pt)
+            .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
         match v {
             Value::Integer(i) => Ok(i.try_into().map_err(|_| {
                 Error::DecodingError("decoded value is not a valid i64".to_string())
             })?),
             _ => Err(Error::DecodingError(format!(
-                "Decoded value is not an integer (got {:?})",
-                v
+                "Decoded value is not an integer (got {v:?})"
             ))),
         }
     }
