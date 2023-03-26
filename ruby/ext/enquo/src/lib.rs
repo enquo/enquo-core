@@ -1,8 +1,11 @@
 #[macro_use]
 extern crate rutie;
 
-use enquo_core::{key_provider, Date, Field, Root, Text, I64};
-use rutie::{AnyObject, Class, Integer, Module, Object, RString, Symbol, VerifiedObject, VM};
+use enquo_core::{key_provider, Boolean, Date, Field, Root, Text, I64};
+use rutie::{
+    AnyObject, Boolean as RBoolean, Class, Integer, Module, Object, RString, Symbol,
+    VerifiedObject, VM,
+};
 
 class!(EnquoRoot);
 class!(EnquoRootKeyStatic);
@@ -84,6 +87,42 @@ impl VerifiedObject for EnquoRootKeyStatic {
 unsafe_methods!(
     EnquoField,
     rbself,
+    fn enquo_field_encrypt_bool(b_obj: RBoolean, context_obj: RString, mode_obj: Symbol) -> RString {
+        let b = b_obj.to_bool();
+        let context = context_obj.to_vec_u8_unchecked();
+        let mode = mode_obj.to_str();
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let mut res = maybe_raise(
+            if mode == "unsafe" {
+                Boolean::new_with_unsafe_parts(b, &context, field)
+            } else {
+                Boolean::new(b, &context, field)
+            },
+            "Failed to create encrypted bool",
+        );
+        if mode == "no_query" {
+            res.make_unqueryable();
+        }
+
+        RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
+    },
+    fn enquo_field_decrypt_bool(ciphertext_obj: RString, context_obj: RString) -> RBoolean {
+        let ct = ciphertext_obj.to_str_unchecked();
+        let context = context_obj.to_vec_u8_unchecked();
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let e_value: Boolean =
+            maybe_raise(serde_json::from_str(ct), "Failed to deserialize ciphertext");
+
+        let value = maybe_raise(
+            e_value.decrypt(&context, field),
+            "Failed to decrypt bool value",
+        );
+        RBoolean::new(value)
+    },
     fn enquo_field_encrypt_i64(i_obj: Integer, context_obj: RString, mode_obj: Symbol) -> RString {
         let i = i_obj.to_i64();
         let context = context_obj.to_vec_u8_unchecked();
@@ -235,6 +274,8 @@ pub extern "C" fn Init_enquo() {
         topmod
             .define_nested_class("Field", None)
             .define(|fieldklass| {
+                fieldklass.def_private("_encrypt_bool", enquo_field_encrypt_bool);
+                fieldklass.def_private("_decrypt_bool", enquo_field_decrypt_bool);
                 fieldklass.def_private("_encrypt_i64", enquo_field_encrypt_i64);
                 fieldklass.def_private("_decrypt_i64", enquo_field_decrypt_i64);
                 fieldklass.def_private("_encrypt_date", enquo_field_encrypt_date);
