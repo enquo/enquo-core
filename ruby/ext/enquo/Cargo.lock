@@ -211,9 +211,9 @@ dependencies = [
 
 [[package]]
 name = "cretrit"
-version = "0.2.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4df4760922c5f3dd56f84699b523b2aa6ce0b4b82845eff8eb4efc3e642dadf0"
+checksum = "0b424f56a53c945d026954e4b431c9d8bd3cd8c431574c8f4b77f59e860c366a"
 dependencies = [
  "aes",
  "cmac",

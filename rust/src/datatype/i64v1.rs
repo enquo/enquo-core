@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use crate::{
-    crypto::{AES256v1, ORE64v1},
+    crypto::{AES256v1, OREv1},
     Error, Field,
 };
 
@@ -12,7 +12,7 @@ pub struct I64v1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: Option<ORE64v1>,
+    pub ore_ciphertext: Option<OREv1<8, 256, u64>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -45,9 +45,9 @@ impl I64v1 {
             .map_err(|_| Error::EncodingError(format!("failed to convert i64 {i} to u64")))?;
 
         let ore = if include_left {
-            ORE64v1::new_with_left(u, context, field)?
+            OREv1::<8, 256, u64>::new_with_left(u, context, field)?
         } else {
-            ORE64v1::new(u, context, field)?
+            OREv1::<8, 256, u64>::new(u, context, field)?
         };
 
         Ok(I64v1 {

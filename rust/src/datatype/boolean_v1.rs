@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use crate::{
-    crypto::{AES256v1, ORE1v1},
+    crypto::{AES256v1, OREv1},
     Error, Field,
 };
 
@@ -12,7 +12,7 @@ pub struct BooleanV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: Option<ORE1v1>,
+    pub ore_ciphertext: Option<OREv1<1, 2, bool>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -47,9 +47,9 @@ impl BooleanV1 {
         let aes = AES256v1::new(&msg, context, field)?;
 
         let ore = if include_left {
-            ORE1v1::new_with_left(b, context, field)?
+            OREv1::<1, 2, bool>::new_with_left(b, context, field)?
         } else {
-            ORE1v1::new(b, context, field)?
+            OREv1::<1, 2, bool>::new(b, context, field)?
         };
 
         Ok(BooleanV1 {
@@ -143,7 +143,7 @@ mod tests {
 
         let mut s: Vec<u8> = vec![];
         ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
-        assert!(s.len() < 75, "s.len() == {}", s.len());
+        assert!(s.len() < 81, "s.len() == {}", s.len());
     }
 
     #[test]

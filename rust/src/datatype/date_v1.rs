@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 use crate::{
-    crypto::{AES256v1, ORE16v1, ORE6v1},
+    crypto::{AES256v1, OREv1},
     Error, Field,
 };
 
@@ -12,11 +12,11 @@ pub struct DateV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "y")]
-    pub year_ciphertext: Option<ORE16v1>,
+    pub year_ciphertext: Option<OREv1<2, 256, u16>>,
     #[serde(rename = "m")]
-    pub month_ciphertext: Option<ORE6v1>,
+    pub month_ciphertext: Option<OREv1<1, 32, u8>>,
     #[serde(rename = "d")]
-    pub day_ciphertext: Option<ORE6v1>,
+    pub day_ciphertext: Option<OREv1<1, 32, u8>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -68,19 +68,19 @@ impl DateV1 {
             .map_err(|_| Error::EncodingError(format!("failed to convert i16 year {y} to u16")))?;
 
         let ore_year = if include_left {
-            ORE16v1::new_with_left(uy, context, field)?
+            OREv1::<2, 256, u16>::new_with_left(uy, context, field)?
         } else {
-            ORE16v1::new(uy, context, field)?
+            OREv1::<2, 256, u16>::new(uy, context, field)?
         };
         let ore_month = if include_left {
-            ORE6v1::new_with_left(m, context, field)?
+            OREv1::<1, 32, u8>::new_with_left(m, context, field)?
         } else {
-            ORE6v1::new(m, context, field)?
+            OREv1::<1, 32, u8>::new(m, context, field)?
         };
         let ore_day = if include_left {
-            ORE6v1::new_with_left(d, context, field)?
+            OREv1::<1, 32, u8>::new_with_left(d, context, field)?
         } else {
-            ORE6v1::new(d, context, field)?
+            OREv1::<1, 32, u8>::new(d, context, field)?
         };
 
         Ok(DateV1 {
@@ -107,7 +107,7 @@ impl DateV1 {
         self.day_ciphertext = None;
     }
 
-    fn ore_parts(&self) -> (&ORE16v1, &ORE6v1, &ORE6v1) {
+    fn ore_parts(&self) -> (&OREv1<2, 256, u16>, &OREv1<1, 32, u8>, &OREv1<1, 32, u8>) {
         let y = self
             .year_ciphertext
             .as_ref()

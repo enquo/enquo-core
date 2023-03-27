@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{
-    crypto::{AES256v1, ERE64v1},
+    crypto::{AES256v1, EREv1},
     key_provider::{KeyProvider, Static},
     Error, Field,
 };
@@ -14,7 +14,7 @@ pub struct TextV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "e")]
-    pub equality_ciphertext: Option<ERE64v1>,
+    pub equality_ciphertext: Option<EREv1<16, 16, u64>>,
     #[serde(rename = "h")]
     pub hash_code: Option<u32>,
     #[serde(rename = "k", with = "serde_bytes")]
@@ -57,9 +57,9 @@ impl TextV1 {
 
         let eq_hash = Self::eq_hash(&normalised, field)?;
         let eq = if allow_unsafe {
-            ERE64v1::new_with_left(eq_hash, context, field)?
+            EREv1::<16, 16, u64>::new_with_left(eq_hash, context, field)?
         } else {
-            ERE64v1::new(eq_hash, context, field)?
+            EREv1::<16, 16, u64>::new(eq_hash, context, field)?
         };
 
         let hc = if allow_unsafe {
