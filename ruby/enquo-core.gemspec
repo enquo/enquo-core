@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
 
 	s.authors  = ["Matt Palmer"]
 	s.email    = ["matt@enquo.org"]
-   s.homepage = "https://enquo.org/active_enquo"
+	s.homepage = "https://enquo.org/active_enquo"
 
 	s.metadata["homepage_uri"] = s.homepage
 	s.metadata["source_code_uri"] = "https://github.com/enquo/enquo-core"
