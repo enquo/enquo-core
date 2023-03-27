@@ -28,12 +28,13 @@ Gem::Specification.new do |s|
 
 	s.required_ruby_version = ">= 2.7.0"
 
+	s.add_runtime_dependency 'rb_sys', '~> 0.1'
+
 	s.add_development_dependency 'bundler'
 	s.add_development_dependency 'github-release'
 	s.add_development_dependency 'rake', '~> 13.0'
 	s.add_development_dependency 'rake-compiler', '~> 1.2'
 	s.add_development_dependency 'rake-compiler-dock', '~> 1.2'
-	s.add_development_dependency 'rb_sys', '~> 0.1'
 	s.add_development_dependency 'redcarpet'
 	s.add_development_dependency 'rspec'
 	s.add_development_dependency 'simplecov'
