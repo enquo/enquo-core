@@ -24,6 +24,7 @@ Gem::Specification.new do |s|
 	s.metadata["bug_tracker_uri"] = "https://github.com/enquo/enquo-core/issues"
 
 	s.files = `git ls-files -z`.split("\0").reject { |f| f =~ /^(G|spec|Rakefile)/ }
+	s.extensions = ["ext/enquo/extconf.rb"]
 
 	s.required_ruby_version = ">= 2.7.0"
 
