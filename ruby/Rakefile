@@ -56,6 +56,9 @@ namespace :gem do
         RakeCompilerDock.sh <<-EOT, platform: platform, image: "rbsys/rcd:#{platform}"
           set -e
 
+          # I have NFI why this is set in the docker image
+          unset RAKE_EXTENSION_TASK_NO_NATIVE
+
           # For cross-building ring; see https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
           if [ -d "/opt/osxcross/target/bin" ]; then
             TARGET_CC="${CARGO_BUILD_TARGET}-cc"
@@ -68,9 +71,10 @@ namespace :gem do
           export TARGET_CC TARGET_AR
 
           export GVB_VERSION_OVERRIDE="#{spec.version}"
+          export RUBY_CC_VERSION=3.2.0:3.1.0:3.0.0:2.7.0
 
           bundle install
-          rake native:#{platform} gem RUBY_CC_VERSION=3.1.0:3.0.0:2.7.0
+          rake native:#{platform} gem
         EOT
       end
     end
