@@ -12,6 +12,7 @@ pub struct OREv1<const N: usize, const W: u16, T> {
     #[serde(rename = "r", with = "serde_bytes")]
     pub right: Vec<u8>,
 
+    #[serde(skip)]
     oooh: PhantomData<T>,
 }
 
