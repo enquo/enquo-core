@@ -6,32 +6,32 @@ module Enquo
 			raise RuntimeError, "Enquo::Field cannot be instantiated directly; use Enquo::Crypto#field instead"
 		end
 
-		def encrypt_bool(b, ctx, safety: true, no_query: false)
+		def encrypt_boolean(b, ctx, safety: true, no_query: false)
 			unless b.is_a?(TrueClass) || b.is_a?(FalseClass)
-				raise ArgumentError, "Enquo::Field#encrypt_bool can only encrypt booleans"
+				raise ArgumentError, "Enquo::Field#encrypt_boolean can only encrypt booleans"
 			end
 
 			unless ctx.is_a?(String)
 				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
 			end
 
-			_encrypt_bool(b, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
+			_encrypt_boolean(b, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
 		end
 
-		def decrypt_bool(data, ctx)
+		def decrypt_boolean(data, ctx)
 			unless data.is_a?(String)
-				raise ArgumentError, "Enquo::Field#decrypt_i64 can only decrypt from a string (got #{data.class})"
+				raise ArgumentError, "Enquo::Field#decrypt_boolean can only decrypt from a string (got #{data.class})"
 			end
 
 			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
-				raise ArgumentError, "Enquo::Field#decrypt_i64 can only decrypt validly-encoded UTF-8 strings (got #{data.encoding})"
+				raise ArgumentError, "Enquo::Field#decrypt_boolean can only decrypt validly-encoded UTF-8 strings (got #{data.encoding})"
 			end
 
 			unless ctx.is_a?(String)
 				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
 			end
 
-			_decrypt_bool(data, ctx)
+			_decrypt_boolean(data, ctx)
 		end
 
 		def encrypt_i64(i, ctx, safety: true, no_query: false)

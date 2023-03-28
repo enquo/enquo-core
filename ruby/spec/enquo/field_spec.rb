@@ -11,11 +11,11 @@ describe Enquo::Field do
 	let(:field_name) { "bar" }
 	let(:field) { root.field(collection, field_name) }
 
-	describe "#encrypt_bool" do
+	describe "#encrypt_boolean" do
 		context "with a TrueValue" do
 			let(:value) { true }
 			let(:context) { "test" }
-			let(:result) { field.encrypt_bool(value, context) }
+			let(:result) { field.encrypt_boolean(value, context) }
 			let(:json) { JSON.parse(result, symbolize_names: true) }
 			let(:v1) { json[:v1] }
 
@@ -54,12 +54,12 @@ describe Enquo::Field do
 		end
 	end
 
-	describe "#decrypt_bool" do
+	describe "#decrypt_boolean" do
 		context "with a TrueValue" do
 			let(:value) { true }
 			let(:context) { "test" }
-			let(:ciphertext) { field.encrypt_bool(value, context) }
-			let(:plaintext) { field.decrypt_bool(ciphertext, context) }
+			let(:ciphertext) { field.encrypt_boolean(value, context) }
+			let(:plaintext) { field.decrypt_boolean(ciphertext, context) }
 
 			it "works" do
 				expect { plaintext }.to_not raise_error

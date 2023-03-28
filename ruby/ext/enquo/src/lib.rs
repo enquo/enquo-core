@@ -87,7 +87,7 @@ impl VerifiedObject for EnquoRootKeyStatic {
 unsafe_methods!(
     EnquoField,
     rbself,
-    fn enquo_field_encrypt_bool(b_obj: RBoolean, context_obj: RString, mode_obj: Symbol) -> RString {
+    fn enquo_field_encrypt_boolean(b_obj: RBoolean, context_obj: RString, mode_obj: Symbol) -> RString {
         let b = b_obj.to_bool();
         let context = context_obj.to_vec_u8_unchecked();
         let mode = mode_obj.to_str();
@@ -100,7 +100,7 @@ unsafe_methods!(
             } else {
                 Boolean::new(b, &context, field)
             },
-            "Failed to create encrypted bool",
+            "Failed to create encrypted boolean",
         );
         if mode == "no_query" {
             res.make_unqueryable();
@@ -108,7 +108,7 @@ unsafe_methods!(
 
         RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
     },
-    fn enquo_field_decrypt_bool(ciphertext_obj: RString, context_obj: RString) -> RBoolean {
+    fn enquo_field_decrypt_boolean(ciphertext_obj: RString, context_obj: RString) -> RBoolean {
         let ct = ciphertext_obj.to_str_unchecked();
         let context = context_obj.to_vec_u8_unchecked();
 
@@ -119,7 +119,7 @@ unsafe_methods!(
 
         let value = maybe_raise(
             e_value.decrypt(&context, field),
-            "Failed to decrypt bool value",
+            "Failed to decrypt boolean value",
         );
         RBoolean::new(value)
     },
@@ -274,8 +274,8 @@ pub extern "C" fn Init_enquo() {
         topmod
             .define_nested_class("Field", None)
             .define(|fieldklass| {
-                fieldklass.def_private("_encrypt_bool", enquo_field_encrypt_bool);
-                fieldklass.def_private("_decrypt_bool", enquo_field_decrypt_bool);
+                fieldklass.def_private("_encrypt_boolean", enquo_field_encrypt_boolean);
+                fieldklass.def_private("_decrypt_boolean", enquo_field_decrypt_boolean);
                 fieldklass.def_private("_encrypt_i64", enquo_field_encrypt_i64);
                 fieldklass.def_private("_decrypt_i64", enquo_field_decrypt_i64);
                 fieldklass.def_private("_encrypt_date", enquo_field_encrypt_date);
