@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::boolean_v1::BooleanV1;
 use crate::{Error, Field};
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Boolean {
     #[allow(non_camel_case_types)]
     v1(Box<BooleanV1>),
