@@ -8,11 +8,11 @@ module Enquo
 
 		def encrypt_boolean(b, ctx, safety: true, no_query: false)
 			unless b.is_a?(TrueClass) || b.is_a?(FalseClass)
-				raise ArgumentError, "Enquo::Field#encrypt_boolean can only encrypt booleans"
+				raise ArgumentError, "Enquo::Field#encrypt_boolean can only encrypt booleans (got an instance of #{b.class})"
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_encrypt_boolean(b, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
@@ -20,7 +20,7 @@ module Enquo
 
 		def decrypt_boolean(data, ctx)
 			unless data.is_a?(String)
-				raise ArgumentError, "Enquo::Field#decrypt_boolean can only decrypt from a string (got #{data.class})"
+				raise ArgumentError, "Enquo::Field#decrypt_boolean can only decrypt from a string (got an instance of #{data.class})"
 			end
 
 			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
@@ -28,7 +28,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_decrypt_boolean(data, ctx)
@@ -36,7 +36,7 @@ module Enquo
 
 		def encrypt_i64(i, ctx, safety: true, no_query: false)
 			unless i.is_a?(Integer)
-				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers"
+				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers (got an instance of #{i.class})"
 			end
 
 			unless i >= -2 ** 63 || i < 2 ** 63
@@ -44,7 +44,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_encrypt_i64(i, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
@@ -52,7 +52,7 @@ module Enquo
 
 		def decrypt_i64(data, ctx)
 			unless data.is_a?(String)
-				raise ArgumentError, "Enquo::Field#decrypt_i64 can only decrypt from a string (got #{data.class})"
+				raise ArgumentError, "Enquo::Field#decrypt_i64 can only decrypt from a string (got an instance of #{data.class})"
 			end
 
 			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
@@ -60,7 +60,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_decrypt_i64(data, ctx)
@@ -68,7 +68,7 @@ module Enquo
 
 		def encrypt_date(d, ctx, safety: true, no_query: false)
 			unless d.is_a?(Date)
-				raise ArgumentError, "Enquo::Field#encrypt_date can only encrypt Dates"
+				raise ArgumentError, "Enquo::Field#encrypt_date can only encrypt Dates (got an instance of #{d.class})"
 			end
 
 			unless d.year >= -2 ** 15 && d.year < 2 ** 15 - 1
@@ -76,7 +76,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_encrypt_date(d.year, d.month, d.day, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
@@ -84,7 +84,7 @@ module Enquo
 
 		def decrypt_date(data, ctx)
 			unless data.is_a?(String)
-				raise ArgumentError, "Enquo::Field#decrypt_date can only decrypt from a string (got #{data.class})"
+				raise ArgumentError, "Enquo::Field#decrypt_date can only decrypt from a string (got an instance of #{data.class})"
 			end
 
 			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
@@ -92,7 +92,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_decrypt_date(data, ctx)
@@ -100,7 +100,7 @@ module Enquo
 
 		def encrypt_text(t, ctx, safety: true, no_query: false)
 			unless t.is_a?(String)
-				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt Strings"
+				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt Strings (got an instance of #{t.class})"
 			end
 
 			unless t.encoding == Encoding::UTF_8
@@ -112,7 +112,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_encrypt_text(t, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
@@ -120,7 +120,7 @@ module Enquo
 
 		def decrypt_text(data, ctx)
 			unless data.is_a?(String)
-				raise ArgumentError, "Enquo::Field#decrypt_text can only decrypt from a string (got #{data.class})"
+				raise ArgumentError, "Enquo::Field#decrypt_text can only decrypt from a string (got an instance of #{data.class})"
 			end
 
 			unless data.encoding == Encoding::UTF_8 && data.valid_encoding?
@@ -128,7 +128,7 @@ module Enquo
 			end
 
 			unless ctx.is_a?(String)
-				raise ArgumentError, "Encryption context must be a string (got a #{ctx.class})"
+				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
 			_decrypt_text(data, ctx)
