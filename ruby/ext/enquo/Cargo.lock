@@ -646,7 +646,7 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 [[package]]
 name = "rutie"
 version = "0.8.4"
-source = "git+https://github.com/mpalmer/rutie?branch=rb_sys#c7b16b35d20c688b32b3f4092ddc6202dd9e2433"
+source = "git+https://github.com/mpalmer/rutie?branch=fixes#b798b15ddfc3ed011de72702bd0124c91fd67c78"
 dependencies = [
  "lazy_static",
  "libc",
