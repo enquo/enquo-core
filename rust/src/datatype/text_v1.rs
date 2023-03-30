@@ -1,14 +1,16 @@
 use ciborium::cbor;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::hash::{Hash, Hasher};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{
-    crypto::{AES256v1, EREv1},
+    crypto::{AES256v1, EREv1, OREv1},
     key_provider::{KeyProvider, Static},
     Error, Field,
 };
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TextV1 {
     #[serde(rename = "a")]
@@ -17,12 +19,17 @@ pub struct TextV1 {
     pub equality_ciphertext: Option<EREv1<16, 16, u64>>,
     #[serde(rename = "h")]
     pub hash_code: Option<u32>,
+    #[serde(rename = "l")]
+    pub length: Option<OREv1<8, 16, u32>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
 
 const TEXT_V1_EQUALITY_HASH_KEY_IDENTIFIER: &[u8] = b"TextV1.equality_hash_key";
+const TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER: &[u8] =
+    b"TextV1.equality_hash_key_ciphertext";
 const TEXT_V1_HASH_CODE_KEY_IDENTIFIER: &[u8] = b"TextV1.hash_code_key";
+const TEXT_V1_LENGTH_KEY_IDENTIFIER: &[u8] = b"TextV1.length_key";
 
 impl TextV1 {
     pub fn new(text: &str, context: &[u8], field: &Field) -> Result<TextV1, Error> {
@@ -56,11 +63,7 @@ impl TextV1 {
         let normalised = text.nfc().collect::<String>();
 
         let eq_hash = Self::eq_hash(&normalised, field)?;
-        let eq = if allow_unsafe {
-            EREv1::<16, 16, u64>::new_with_left(eq_hash, context, field)?
-        } else {
-            EREv1::<16, 16, u64>::new(eq_hash, context, field)?
-        };
+        let eq = Self::ere_eq_hash(eq_hash, context, field, allow_unsafe)?;
 
         let hc = if allow_unsafe {
             Some(Self::hash_code(&normalised, field)?)
@@ -68,10 +71,16 @@ impl TextV1 {
             None
         };
 
+        let pt_len = <usize as TryInto<u32>>::try_into(text.chars().count()).map_err(|_| {
+            Error::EncodingError("string length exceeds maximum allowed value".to_string())
+        })?;
+        let ore_len = Self::ore_length(pt_len, context, field, allow_unsafe)?;
+
         Ok(TextV1 {
             aes_ciphertext: aes,
             equality_ciphertext: Some(eq),
             hash_code: hc,
+            length: Some(ore_len),
             key_id: field.key_id()?,
         })
     }
@@ -88,6 +97,7 @@ impl TextV1 {
     pub fn make_unqueryable(&mut self) {
         self.equality_ciphertext = None;
         self.hash_code = None;
+        self.length = None;
     }
 
     fn eq_hash(text: &str, field: &Field) -> Result<u64, Error> {
@@ -103,6 +113,48 @@ impl TextV1 {
                     )
                 })?,
         ))
+    }
+
+    fn ere_eq_hash(
+        hc: u64,
+        context: &[u8],
+        field: &Field,
+        allow_unsafe: bool,
+    ) -> Result<EREv1<16, 16, u64>, Error> {
+        if allow_unsafe {
+            Ok(EREv1::<16, 16, u64>::new_with_left(
+                hc,
+                &Field::subcontext(context, TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER),
+                field,
+            )?)
+        } else {
+            Ok(EREv1::<16, 16, u64>::new(
+                hc,
+                &Field::subcontext(context, TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER),
+                field,
+            )?)
+        }
+    }
+
+    fn ore_length(
+        len: u32,
+        context: &[u8],
+        field: &Field,
+        allow_unsafe: bool,
+    ) -> Result<OREv1<8, 16, u32>, Error> {
+        if allow_unsafe {
+            Ok(OREv1::<8, 16, u32>::new_with_left(
+                len,
+                &Field::subcontext(context, TEXT_V1_LENGTH_KEY_IDENTIFIER),
+                field,
+            )?)
+        } else {
+            Ok(OREv1::<8, 16, u32>::new(
+                len,
+                &Field::subcontext(context, TEXT_V1_LENGTH_KEY_IDENTIFIER),
+                field,
+            )?)
+        }
     }
 
     fn hash_code(text: &str, field: &Field) -> Result<u32, Error> {
@@ -146,7 +198,7 @@ impl Eq for TextV1 {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{key_provider::Static, Root};
+    use crate::{crypto::OREv1, key_provider::Static, Root};
 
     fn field() -> Field {
         Root::new(&Static::new(b"testkey"))
@@ -204,7 +256,7 @@ mod tests {
 
         let mut s: Vec<u8> = vec![];
         ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
-        assert!(s.len() < 120, "s.len() == {}", s.len());
+        assert!(s.len() >= 158 || s.len() <= 160, "s.len() == {}", s.len());
     }
 
     #[test]
@@ -216,7 +268,7 @@ mod tests {
 
         let mut s: Vec<u8> = vec![];
         ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
-        assert!(s.len() < 55, "s.len() == {}", s.len());
+        assert!(s.len() == 48, "s.len() == {}", s.len());
     }
 
     #[test]
@@ -279,5 +331,45 @@ mod tests {
             non_normalised.hash_code.unwrap(),
             normalised.hash_code.unwrap()
         );
+    }
+
+    #[test]
+    fn ascii_length() {
+        let t = TextV1::new("ohai!", b"somecontext", &field()).unwrap();
+        let len =
+            OREv1::<8, 16, u32>::new_with_left(5, b"somecontext\0TextV1.length_key", &field())
+                .unwrap();
+
+        assert_eq!(t.length.unwrap(), len);
+    }
+
+    #[test]
+    fn normalised_utf8_length() {
+        let t = TextV1::new(
+            &String::from_utf8(b"Jos\xC3\xA9".to_vec()).unwrap(),
+            b"somecontext",
+            &field(),
+        )
+        .unwrap();
+        let len =
+            OREv1::<8, 16, u32>::new_with_left(4, b"somecontext\0TextV1.length_key", &field())
+                .unwrap();
+
+        assert_eq!(t.length.unwrap(), len);
+    }
+
+    #[test]
+    fn denormalised_utf8_length() {
+        let t = TextV1::new(
+            &String::from_utf8(b"Jose\xCC\x81".to_vec()).unwrap(),
+            b"somecontext",
+            &field(),
+        )
+        .unwrap();
+        let len =
+            OREv1::<8, 16, u32>::new_with_left(5, b"somecontext\0TextV1.length_key", &field())
+                .unwrap();
+
+        assert_eq!(t.length.unwrap(), len);
     }
 }
