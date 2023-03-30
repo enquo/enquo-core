@@ -1,10 +1,12 @@
 use cretrit::{aes128v1::ore, PlainText, SerializableCipherText};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::{Error, Field};
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OREv1<const N: usize, const W: u16, T> {
     #[serde(rename = "l", with = "serde_bytes")]

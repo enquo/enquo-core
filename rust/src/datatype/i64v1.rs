@@ -1,5 +1,6 @@
 use ciborium::{cbor, value::Value};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use std::cmp::Ordering;
 
 use crate::{
@@ -7,6 +8,7 @@ use crate::{
     Error, Field,
 };
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct I64v1 {
     #[serde(rename = "a")]

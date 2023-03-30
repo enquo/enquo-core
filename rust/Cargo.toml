@@ -21,6 +21,7 @@ serde_bytes = "0.11"
 sha2 = "0.10"
 thiserror = "1.0"
 unicode-normalization = "0.1"
+serde_with = "2.3"
 
 [dev-dependencies]
 hex-literal = "0.3"
