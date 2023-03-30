@@ -13,6 +13,15 @@ impl Field {
         })
     }
 
+    pub fn subcontext(main: &[u8], sub: &[u8]) -> Vec<u8> {
+        let mut ctx: Vec<u8> = vec![];
+        ctx.extend(main);
+        ctx.extend([0u8]);
+        ctx.extend(sub);
+
+        ctx
+    }
+
     pub fn subkey(&self, identifier: &[u8]) -> Result<Vec<u8>, Error> {
         self.field_key.derive_key(identifier)
     }

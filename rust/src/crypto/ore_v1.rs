@@ -25,8 +25,8 @@ impl<const N: usize, const W: u16, T> OREv1<N, W, T>
 where
     PlainText<N, W>: From<T>,
 {
-    pub fn new(plaintext: T, _context: &[u8], field: &Field) -> Result<OREv1<N, W, T>, Error> {
-        let cipher = Self::cipher(field)?;
+    pub fn new(plaintext: T, context: &[u8], field: &Field) -> Result<OREv1<N, W, T>, Error> {
+        let cipher = Self::cipher(context, field)?;
         let ct = cipher.right_encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {e:?}"))
         })?;
@@ -40,10 +40,10 @@ where
 
     pub fn new_with_left(
         plaintext: T,
-        _context: &[u8],
+        context: &[u8],
         field: &Field,
     ) -> Result<OREv1<N, W, T>, Error> {
-        let cipher = Self::cipher(field)?;
+        let cipher = Self::cipher(context, field)?;
         let ct = cipher.full_encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ORE ciphertext: {e:?}"))
         })?;
@@ -61,10 +61,12 @@ where
         })
     }
 
-    fn cipher(field: &Field) -> Result<ore::Cipher<N, W>, Error> {
+    fn cipher(context: &[u8], field: &Field) -> Result<ore::Cipher<N, W>, Error> {
         let mut key: [u8; 16] = Default::default();
 
-        key.clone_from_slice(&field.subkey(OREv1_KEY_IDENTIFIER)?[0..16]);
+        key.clone_from_slice(
+            &field.subkey(&Field::subcontext(context, OREv1_KEY_IDENTIFIER))?[0..16],
+        );
 
         ore::Cipher::<N, W>::new(key)
             .map_err(|e| Error::EncryptionError(format!("Failed to initialize ORE cipher: {e:?}")))
