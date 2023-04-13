@@ -94,10 +94,11 @@ impl TextV1 {
         Ok(s_text)
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         self.equality_ciphertext = None;
         self.hash_code = None;
         self.length = None;
+        Ok(())
     }
 
     fn eq_hash(text: &str, field: &Field) -> Result<u64, Error> {
@@ -260,7 +261,7 @@ mod tests {
     #[test]
     fn minimum_unqueryable_serialised_ciphertext_size() {
         let mut value = TextV1::new("", b"somecontext", &field()).unwrap();
-        value.make_unqueryable();
+        value.make_unqueryable().unwrap();
 
         let serde_value = cbor!(value).unwrap();
 

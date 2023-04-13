@@ -29,10 +29,12 @@ impl Text {
         }
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         match self {
             Text::v1(t) => t.make_unqueryable(),
-            Text::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+            Text::Unknown => Err(Error::OperationError(
+                "can't make an Unknown version text value unqueryable".to_string(),
+            )),
         }
     }
 }
