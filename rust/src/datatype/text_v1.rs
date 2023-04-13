@@ -63,7 +63,7 @@ impl TextV1 {
         let normalised = text.nfc().collect::<String>();
 
         let eq_hash = Self::eq_hash(&normalised, field)?;
-        let eq = Self::ere_eq_hash(eq_hash, context, field, allow_unsafe)?;
+        let eq = Self::ere_eq_hash(eq_hash, field, allow_unsafe)?;
 
         let hc = if allow_unsafe {
             Some(Self::hash_code(&normalised, field)?)
@@ -117,41 +117,39 @@ impl TextV1 {
 
     fn ere_eq_hash(
         hc: u64,
-        context: &[u8],
         field: &Field,
         allow_unsafe: bool,
     ) -> Result<EREv1<16, 16, u64>, Error> {
         if allow_unsafe {
             Ok(EREv1::<16, 16, u64>::new_with_left(
                 hc,
-                &Field::subcontext(context, TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER),
+                TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER,
                 field,
             )?)
         } else {
             Ok(EREv1::<16, 16, u64>::new(
                 hc,
-                &Field::subcontext(context, TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER),
+                TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER,
                 field,
             )?)
         }
     }
 
-    fn ore_length(
+    pub fn ore_length(
         len: u32,
-        context: &[u8],
         field: &Field,
         allow_unsafe: bool,
     ) -> Result<OREv1<8, 16, u32>, Error> {
         if allow_unsafe {
             Ok(OREv1::<8, 16, u32>::new_with_left(
                 len,
-                &Field::subcontext(context, TEXT_V1_LENGTH_KEY_IDENTIFIER),
+                TEXT_V1_LENGTH_KEY_IDENTIFIER,
                 field,
             )?)
         } else {
             Ok(OREv1::<8, 16, u32>::new(
                 len,
-                &Field::subcontext(context, TEXT_V1_LENGTH_KEY_IDENTIFIER),
+                TEXT_V1_LENGTH_KEY_IDENTIFIER,
                 field,
             )?)
         }
@@ -337,8 +335,7 @@ mod tests {
     fn ascii_length() {
         let t = TextV1::new("ohai!", b"somecontext", &field()).unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(5, b"somecontext\0TextV1.length_key", &field())
-                .unwrap();
+            OREv1::<8, 16, u32>::new_with_left(5, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
@@ -352,8 +349,7 @@ mod tests {
         )
         .unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(4, b"somecontext\0TextV1.length_key", &field())
-                .unwrap();
+            OREv1::<8, 16, u32>::new_with_left(4, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
@@ -367,8 +363,7 @@ mod tests {
         )
         .unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(5, b"somecontext\0TextV1.length_key", &field())
-                .unwrap();
+            OREv1::<8, 16, u32>::new_with_left(5, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
