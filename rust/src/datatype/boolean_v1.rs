@@ -19,6 +19,9 @@ pub struct BooleanV1 {
     pub key_id: Vec<u8>,
 }
 
+#[allow(non_upper_case_globals)]
+const BOOLEANv1_ORE_KEY_IDENTIFIER: &[u8] = b"BooleanV1.ore_key";
+
 impl BooleanV1 {
     pub fn new(b: bool, context: &[u8], field: &Field) -> Result<BooleanV1, Error> {
         Self::encrypt(b, context, field, false)
@@ -49,9 +52,9 @@ impl BooleanV1 {
         let aes = AES256v1::new(&msg, context, field)?;
 
         let ore = if include_left {
-            OREv1::<1, 2, bool>::new_with_left(b, context, field)?
+            OREv1::<1, 2, bool>::new_with_left(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
         } else {
-            OREv1::<1, 2, bool>::new(b, context, field)?
+            OREv1::<1, 2, bool>::new(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
         };
 
         Ok(BooleanV1 {
