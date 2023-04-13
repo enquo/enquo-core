@@ -4,17 +4,23 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::crypto::OREv1;
-use crate::{Error, Field};
+use crate::{Error, Field, SetValue, ValueFrom};
 
 #[derive(Debug, Serialize, Deserialize)]
-enum Ciphertext<const N: usize, const W: u16, T> {
+enum Ciphertext<const N: usize, const W: u16, T>
+where
+    T: Clone,
+{
     #[allow(non_camel_case_types)]
     v1(OREv1<N, W, T>),
     Unknown,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ORE<const N: usize, const W: u16, T> {
+pub struct ORE<const N: usize, const W: u16, T>
+where
+    T: Clone,
+{
     #[serde(rename = "o")]
     ore_ciphertext: Ciphertext<N, W, T>,
 
@@ -28,6 +34,7 @@ pub struct ORE<const N: usize, const W: u16, T> {
 impl<const N: usize, const W: u16, T> ORE<N, W, T>
 where
     PlainText<N, W>: From<T>,
+    T: Clone,
 {
     pub fn new(i: T, context: &[u8], field: &Field) -> Result<ORE<N, W, T>, Error> {
         Ok(ORE::<N, W, T> {
@@ -50,9 +57,38 @@ where
     }
 }
 
+impl<const N: usize, const W: u16, T> SetValue for ORE<N, W, T>
+where
+    T: Clone,
+{
+    fn is_compatible(&self, other: &Self) -> bool {
+        match &self.ore_ciphertext {
+            Ciphertext::v1(_) => match &other.ore_ciphertext {
+                Ciphertext::v1(_) => self.key_id == other.key_id,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
+
+impl<const N: usize, const W: u16, T> ValueFrom<&OREv1<N, W, T>> for ORE<N, W, T>
+where
+    T: Clone,
+{
+    fn from(k: &[u8], o: &OREv1<N, W, T>) -> ORE<N, W, T> {
+        ORE::<N, W, T> {
+            ore_ciphertext: Ciphertext::v1((*o).clone()),
+            key_id: k.into(),
+            oooh: PhantomData,
+        }
+    }
+}
+
 impl<const N: usize, const W: u16, T> Ord for ORE<N, W, T>
 where
     PlainText<N, W>: From<T>,
+    T: Clone,
 {
     fn cmp(&self, other: &Self) -> Ordering {
         match &self.ore_ciphertext {
@@ -70,6 +106,7 @@ where
 impl<const N: usize, const W: u16, T> PartialOrd for ORE<N, W, T>
 where
     PlainText<N, W>: From<T>,
+    T: Clone,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -79,13 +116,19 @@ where
 impl<const N: usize, const W: u16, T> PartialEq for ORE<N, W, T>
 where
     PlainText<N, W>: From<T>,
+    T: Clone,
 {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl<const N: usize, const W: u16, T> Eq for ORE<N, W, T> where PlainText<N, W>: From<T> {}
+impl<const N: usize, const W: u16, T> Eq for ORE<N, W, T>
+where
+    PlainText<N, W>: From<T>,
+    T: Clone,
+{
+}
 
 #[cfg(test)]
 mod tests {

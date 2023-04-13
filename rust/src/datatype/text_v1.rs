@@ -1,6 +1,10 @@
 use ciborium::cbor;
+use rust_icu_sys::UColAttributeValue;
+use rust_icu_ucol::UCollator;
+use rust_icu_ustring::UChar;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use unicode_normalization::UnicodeNormalization;
 
@@ -19,6 +23,8 @@ pub struct TextV1 {
     pub equality_ciphertext: Option<EREv1<16, 16, u64>>,
     #[serde(rename = "h")]
     pub hash_code: Option<u32>,
+    #[serde(rename = "o")]
+    pub order_code: Option<Vec<OREv1<1, 256, u8>>>,
     #[serde(rename = "l")]
     pub length: Option<OREv1<8, 16, u32>>,
     #[serde(rename = "k", with = "serde_bytes")]
@@ -29,19 +35,21 @@ const TEXT_V1_EQUALITY_HASH_KEY_IDENTIFIER: &[u8] = b"TextV1.equality_hash_key";
 const TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER: &[u8] =
     b"TextV1.equality_hash_key_ciphertext";
 const TEXT_V1_HASH_CODE_KEY_IDENTIFIER: &[u8] = b"TextV1.hash_code_key";
+const TEXT_V1_ORDER_CODE_KEY_IDENTIFIER: &[u8] = b"TextV1.order_code_key";
 const TEXT_V1_LENGTH_KEY_IDENTIFIER: &[u8] = b"TextV1.length_key";
 
 impl TextV1 {
     pub fn new(text: &str, context: &[u8], field: &Field) -> Result<TextV1, Error> {
-        Self::encrypt(text, context, field, false)
+        Self::encrypt(text, context, field, false, None)
     }
 
     pub fn new_with_unsafe_parts(
         text: &str,
         context: &[u8],
         field: &Field,
+        ordering: Option<u8>,
     ) -> Result<TextV1, Error> {
-        Self::encrypt(text, context, field, true)
+        Self::encrypt(text, context, field, true, ordering)
     }
 
     fn encrypt(
@@ -49,6 +57,7 @@ impl TextV1 {
         context: &[u8],
         field: &Field,
         allow_unsafe: bool,
+        ordering: Option<u8>,
     ) -> Result<TextV1, Error> {
         let v = cbor!(text).map_err(|e| {
             Error::EncodingError(format!("failed to convert string to ciborium value: {e}"))
@@ -74,12 +83,15 @@ impl TextV1 {
         let pt_len = <usize as TryInto<u32>>::try_into(text.chars().count()).map_err(|_| {
             Error::EncodingError("string length exceeds maximum allowed value".to_string())
         })?;
-        let ore_len = Self::ore_length(pt_len, context, field, allow_unsafe)?;
+        let ore_len = Self::ore_length(pt_len, field, allow_unsafe)?;
+
+        let order_code = Self::order_code(&normalised, ordering, field)?;
 
         Ok(TextV1 {
             aes_ciphertext: aes,
             equality_ciphertext: Some(eq),
             hash_code: hc,
+            order_code,
             length: Some(ore_len),
             key_id: field.key_id()?,
         })
@@ -170,6 +182,38 @@ impl TextV1 {
                 })?,
         ))
     }
+
+    fn order_code(
+        text: &str,
+        ordering: Option<u8>,
+        field: &Field,
+    ) -> Result<Option<Vec<OREv1<1, 256, u8>>>, Error> {
+        match ordering {
+            None => Ok(None),
+            Some(len) => {
+                let mut collator = UCollator::try_from("en").map_err(|e| {
+                    Error::CollationError(format!("could not create collator: {e}"))
+                })?;
+                collator.set_strength(UColAttributeValue::UCOL_DEFAULT);
+                let uc_text = UChar::try_from(text)
+                    .map_err(|e| Error::CollationError(format!("invalid text string: {e}")))?;
+                let sort_key = collator.get_sort_key(&uc_text);
+
+                let mut order_vec: Vec<OREv1<1, 256, u8>> = vec![];
+
+                for i in 0..len {
+                    let sort_key_component = sort_key.get(i as usize).unwrap_or(&0);
+                    let v = OREv1::<1, 256, u8>::new_with_left(
+                        *sort_key_component,
+                        TEXT_V1_ORDER_CODE_KEY_IDENTIFIER,
+                        field,
+                    )?;
+                    order_vec.push(v);
+                }
+                Ok(Some(order_vec))
+            }
+        }
+    }
 }
 
 impl Hash for TextV1 {
@@ -180,8 +224,42 @@ impl Hash for TextV1 {
     }
 }
 
+impl Ord for TextV1 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.key_id != other.key_id {
+            panic!("Cannot compare ciphertexts from different keys");
+        }
+
+        let lhs = self
+            .order_code
+            .as_ref()
+            .expect("Cannot compare without an ordering code on the left-hand side");
+        let rhs = other
+            .order_code
+            .as_ref()
+            .expect("Cannot compare without an ordering code on the right-hand side");
+
+        lhs.cmp(rhs)
+    }
+}
+
+impl PartialOrd for TextV1 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl PartialEq for TextV1 {
     fn eq(&self, other: &Self) -> bool {
+        if self.key_id != other.key_id {
+            panic!("Cannot compare ciphertexts from different keys");
+        }
+
+        // While we'd ordinarily defer to cmp == Ordering::Equal in a PartialEq
+        // implementation, in this case the order code is "less accurate"
+        // than the equality ciphertext, and -- so far, at least -- you
+        // can only get an orderable text value if you've also got an equality
+        // ciphertext, so there's no chance of *having* to degrade.
         self.equality_ciphertext
             .as_ref()
             .expect("Cannot compare text values without LHS equality_ciphertext")
@@ -227,7 +305,7 @@ mod tests {
     #[test]
     fn ciphertexts_compare_correctly() {
         let text1 =
-            TextV1::new_with_unsafe_parts("Hello, Enquo!", b"somecontext", &field()).unwrap();
+            TextV1::new_with_unsafe_parts("Hello, Enquo!", b"somecontext", &field(), None).unwrap();
         let text2 = TextV1::new("Hello, Enquo!", b"somecontext", &field()).unwrap();
         let text3 = TextV1::new("Goodbye, Enquo!", b"somecontext", &field()).unwrap();
 
@@ -237,15 +315,26 @@ mod tests {
 
     #[test]
     fn hash_codes_compare_correctly() {
-        let text1 =
-            TextV1::new_with_unsafe_parts("Hello, Enquo!", b"somecontext", &field()).unwrap();
-        let text2 =
-            TextV1::new_with_unsafe_parts("Hello, Enquo!", b"somecontext", &field()).unwrap();
-        let text3 =
-            TextV1::new_with_unsafe_parts("Goodbye, Enquo!", b"somecontext", &field()).unwrap();
+        let text1 = TextV1::new_with_unsafe_parts("Hello, Enquo!", b"", &field(), None).unwrap();
+        let text2 = TextV1::new_with_unsafe_parts("Hello, Enquo!", b"", &field(), None).unwrap();
+        let text3 = TextV1::new_with_unsafe_parts("Goodbye, Enquo!", b"", &field(), None).unwrap();
 
         assert_eq!(text1.hash_code.unwrap(), text2.hash_code.unwrap());
         assert_ne!(text1.hash_code.unwrap(), text3.hash_code.unwrap());
+    }
+
+    #[test]
+    fn orderable_strings_compare_correctly() {
+        let one = TextV1::new_with_unsafe_parts("one", b"1", &field(), Some(8)).unwrap();
+        let two = TextV1::new_with_unsafe_parts("two", b"2", &field(), Some(8)).unwrap();
+        let three = TextV1::new_with_unsafe_parts("three", b"3", &field(), Some(8)).unwrap();
+
+        assert!(one == one);
+        assert!(two == two);
+        assert!(three == three);
+        assert!(one < two);
+        assert!(two > three);
+        assert!(one < three);
     }
 
     #[test]
@@ -312,6 +401,7 @@ mod tests {
             &String::from_utf8(b"La Nin\xCC\x83a".to_vec()).unwrap(),
             b"somecontext",
             &field(),
+            None,
         )
         .unwrap();
         let normalised = TextV1::new(
@@ -330,12 +420,14 @@ mod tests {
             &String::from_utf8(b"La Nin\xCC\x83a".to_vec()).unwrap(),
             b"somecontext",
             &field(),
+            None,
         )
         .unwrap();
         let normalised = TextV1::new_with_unsafe_parts(
             &String::from_utf8(b"La Ni\xC3\xB1a".to_vec()).unwrap(),
             b"somecontext",
             &field(),
+            None,
         )
         .unwrap();
 

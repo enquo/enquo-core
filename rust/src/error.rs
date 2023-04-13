@@ -12,4 +12,8 @@ pub enum Error {
     DecryptionError(String),
     #[error("failed to derive key material: {0}")]
     KeyError(String),
+    #[error("could not perform requested operation: {0}")]
+    OperationError(String),
+    #[error("failed to collate text string: {0}")]
+    CollationError(String),
 }

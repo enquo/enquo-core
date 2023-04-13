@@ -31,7 +31,7 @@ fn maybe_raise<T, E: std::error::Error>(r: Result<T, E>, s: &str) -> T {
 
 unsafe_methods!(
     EnquoRoot,
-    rbself,
+    _rbself,
     fn enquo_root_new_from_static_root_key(root_key_obj: EnquoRootKeyStatic) -> EnquoRoot {
         let rk = root_key_obj.get_data(&*STATIC_ROOT_KEY_WRAPPER);
         let root = maybe_raise(Root::new(rk), "Failed to create Enquo::Root");
@@ -43,7 +43,7 @@ unsafe_methods!(
         let relation = relation_obj.to_vec_u8_unchecked();
         let name = name_obj.to_vec_u8_unchecked();
 
-        let root = rbself.get_data(&*ROOT_WRAPPER);
+        let root = _rbself.get_data(&*ROOT_WRAPPER);
 
         let field = maybe_raise(
             root.field(&relation, &name),
@@ -217,7 +217,8 @@ unsafe_methods!(
     fn enquo_field_encrypt_text(
         text_obj: RString,
         context_obj: RString,
-        mode_obj: Symbol
+        mode_obj: Symbol,
+        order_code_len_obj: Integer
     ) -> RString {
         let text = text_obj.to_str();
         let context = context_obj.to_vec_u8_unchecked();
@@ -231,6 +232,15 @@ unsafe_methods!(
                     text,
                     &context,
                     field,
+                    None,
+                )
+            } else if mode == "orderable" {
+                let order_code_len = order_code_len_obj.to_i64() as u8;
+                Text::new_with_unsafe_parts(
+                    text,
+                    &context,
+                    field,
+                    Some(order_code_len),
                 )
             } else {
                 Text::new(text, &context, field)
@@ -238,7 +248,7 @@ unsafe_methods!(
             "Failed to create encrypted date",
         );
         if mode == "no_query" {
-            res.make_unqueryable();
+            maybe_raise(res.make_unqueryable(), "Failed to make ciphertext unqueryable");
         }
 
         RString::new_utf8(&maybe_raise(serde_json::to_string(&res), "Failed to JSONify ciphertext"))
@@ -255,6 +265,16 @@ unsafe_methods!(
         let s = maybe_raise(e_value.decrypt(&context, field), "Failed to decrypt text value");
 
         RString::new_utf8(&s)
+    },
+    fn enquo_field_encrypt_text_length_query(
+        len_obj: Integer
+    ) -> RString {
+        let len = len_obj.to_u32();
+
+        let field = rbself.get_data(&*FIELD_WRAPPER);
+
+        let v_set = maybe_raise(Text::query_length(len, field), "Failed to encrypt length as value set");
+        RString::new_utf8(&maybe_raise(serde_json::to_string(&v_set), "Failed to JSONify value set"))
     }
 );
 
@@ -282,6 +302,10 @@ pub extern "C" fn Init_enquo() {
                 fieldklass.def_private("_decrypt_date", enquo_field_decrypt_date);
                 fieldklass.def_private("_encrypt_text", enquo_field_encrypt_text);
                 fieldklass.def_private("_decrypt_text", enquo_field_decrypt_text);
+                fieldklass.def_private(
+                    "_encrypt_text_length_query",
+                    enquo_field_encrypt_text_length_query,
+                );
             });
         topmod.define_nested_module("RootKey").define(|rkmod| {
             rkmod

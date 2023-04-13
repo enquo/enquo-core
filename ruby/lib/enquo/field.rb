@@ -39,7 +39,7 @@ module Enquo
 				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers (got an instance of #{i.class})"
 			end
 
-			unless i >= -2 ** 63 || i < 2 ** 63
+			unless i >= -2 ** 63 && i < 2 ** 63
 				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers between -2^63 and 2^63-1 (got #{i})"
 			end
 
@@ -98,24 +98,48 @@ module Enquo
 			_decrypt_date(data, ctx)
 		end
 
-		def encrypt_text(t, ctx, safety: true, no_query: false)
+		def encrypt_text(t, ctx, safety: true, no_query: false, order_prefix_length: nil)
 			unless t.is_a?(String)
 				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt Strings (got an instance of #{t.class})"
 			end
 
-			unless t.encoding == Encoding::UTF_8
+			unless [Encoding::UTF_8, Encoding::US_ASCII].include?(t.encoding)
 				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt UTF-8 strings (got a string encoding of #{t.encoding})"
 			end
 
 			unless t.valid_encoding?
-				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt validly-encoded UTF-8 strings"
+				raise ArgumentError, "Enquo::Field#encrypt_string can only encrypt validly-encoded strings"
 			end
 
 			unless ctx.is_a?(String)
 				raise ArgumentError, "Encryption context must be a string (got an instance of #{ctx.class})"
 			end
 
-			_encrypt_text(t, ctx, no_query ? :no_query : safety == :unsafe ? :unsafe : :default)
+			unless order_prefix_length.nil?
+				unless safety == :unsafe
+					raise ArgumentError, "Ordering is only supported when the text field is marked unsafe"
+				end
+
+				unless order_prefix_length.is_a?(Integer)
+					raise ArgumentError, "Ordering prefix length must be an integer (got an instance of #{order_prefix_length.class})"
+				end
+
+				unless (1..255).include?(order_prefix_length)
+					raise ArgumentError, "Ordering prefix length must be between 1 and 255 inclusive (got #{order_prefix_length})"
+				end
+			end
+
+			mode = if no_query
+				:no_query
+			elsif !order_prefix_length.nil?
+				:orderable
+			elsif safety == :unsafe
+				:unsafe
+			else
+				:default
+			end
+
+			_encrypt_text(t, ctx, mode, order_prefix_length)
 		end
 
 		def decrypt_text(data, ctx)
@@ -132,6 +156,18 @@ module Enquo
 			end
 
 			_decrypt_text(data, ctx)
+		end
+
+		def encrypt_text_length_query(len)
+			unless len.is_a?(Integer)
+				raise ArgumentError, "Enquo::Field#encrypt_text_length_query can only encrypt integers (got an instance of #{len.class})"
+			end
+
+			unless len >= 0 && len < 2 ** 32
+				raise ArgumentError, "Enquo::Field#encrypt_text_length_query can only encrypt integers between 0 and 2^32-1 (got #{len})"
+			end
+
+			_encrypt_text_length_query(len)
 		end
 	end
 end
