@@ -271,6 +271,19 @@ mod tests {
     }
 
     #[test]
+    fn ciphertext_survives_serialisation() {
+        let value = TextV1::new("ohai!", b"somecontext", &field()).unwrap();
+        let serde_value = cbor!(value).unwrap();
+
+        let mut s: Vec<u8> = vec![];
+        ciborium::ser::into_writer(&serde_value, &mut s).unwrap();
+
+        let v2: TextV1 = ciborium::de::from_reader(&s[..]).unwrap();
+
+        assert_eq!("ohai!", v2.decrypt(b"somecontext", &field()).unwrap());
+    }
+
+    #[test]
     fn default_encryption_is_safe() {
         let value = TextV1::new("Hello, Enquo!", b"somecontext", &field()).unwrap();
 
