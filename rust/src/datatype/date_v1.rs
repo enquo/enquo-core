@@ -129,6 +129,9 @@ impl DateV1 {
 
 impl Ord for DateV1 {
     fn cmp(&self, other: &Self) -> Ordering {
+        if self.key_id != other.key_id {
+            panic!("Cannot compare ciphertexts from different keys");
+        }
         let lhs = self.ore_parts();
         let rhs = other.ore_parts();
 
