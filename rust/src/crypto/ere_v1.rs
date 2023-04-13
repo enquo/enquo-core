@@ -6,26 +6,23 @@ use std::marker::PhantomData;
 use crate::{Error, Field};
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EREv1<const N: usize, const W: u16, T> {
     #[serde(rename = "l", with = "serde_bytes")]
-    pub left: Option<Vec<u8>>,
+    pub(crate) left: Option<Vec<u8>>,
     #[serde(rename = "r", with = "serde_bytes")]
-    pub right: Vec<u8>,
+    pub(crate) right: Vec<u8>,
 
     #[serde(skip)]
     oooh: PhantomData<T>,
 }
 
-#[allow(non_upper_case_globals)]
-const EREv1_KEY_IDENTIFIER: &[u8] = b"EREv1.key";
-
 impl<const N: usize, const W: u16, T> EREv1<N, W, T>
 where
     PlainText<N, W>: From<T>,
 {
-    pub fn new(plaintext: T, context: &[u8], field: &Field) -> Result<EREv1<N, W, T>, Error> {
-        let cipher = Self::cipher(context, field)?;
+    pub fn new(plaintext: T, subkey_id: &[u8], field: &Field) -> Result<EREv1<N, W, T>, Error> {
+        let cipher = Self::cipher(subkey_id, field)?;
         let ct = cipher.right_encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {e:?}"))
         })?;
@@ -39,10 +36,10 @@ where
 
     pub fn new_with_left(
         plaintext: T,
-        context: &[u8],
+        subkey_id: &[u8],
         field: &Field,
     ) -> Result<EREv1<N, W, T>, Error> {
-        let cipher = Self::cipher(context, field)?;
+        let cipher = Self::cipher(subkey_id, field)?;
         let ct = cipher.full_encrypt(plaintext.into()).map_err(|e| {
             Error::EncryptionError(format!("Failed to encrypt ERE ciphertext: {e:?}"))
         })?;
@@ -60,12 +57,10 @@ where
         })
     }
 
-    fn cipher(context: &[u8], field: &Field) -> Result<ere::Cipher<N, W>, Error> {
+    fn cipher(subkey_id: &[u8], field: &Field) -> Result<ere::Cipher<N, W>, Error> {
         let mut key: [u8; 16] = Default::default();
 
-        key.clone_from_slice(
-            &field.subkey(&Field::subcontext(context, EREv1_KEY_IDENTIFIER))?[0..16],
-        );
+        key.clone_from_slice(&field.subkey(subkey_id)?[0..16]);
 
         ere::Cipher::<N, W>::new(key)
             .map_err(|e| Error::EncryptionError(format!("Failed to initialize ERE cipher: {e:?}")))
