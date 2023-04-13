@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     name: "Upload"
 
+    env:
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
+
     steps:
       - uses: actions/checkout@v2
 
@@ -35,6 +38,9 @@ jobs:
           mv Cargo.toml Cargo.toml.tmpl
           sed "s/0\\.0\\.0-git/${RELEASE_TAG##*\/v}/" Cargo.toml.tmpl >Cargo.toml
           rm Cargo.toml.tmpl
+
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Do The Needful
         working-directory: rust

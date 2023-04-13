@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     name: "Test"
 
+    env:
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
+
     steps:
       - uses: actions/checkout@v2
 
@@ -33,6 +36,9 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
 
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
+
       - name: Run testsuite
         working-directory: rust
         run: |
@@ -41,6 +47,9 @@ jobs:
   qc:
     runs-on: ubuntu-latest
     name: "Quality Control"
+
+    env:
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
 
     steps:
       - uses: actions/checkout@v2
@@ -59,6 +68,9 @@ jobs:
             ~/.cargo/registry
             target/
           key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
+
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Check formatting
         working-directory: rust

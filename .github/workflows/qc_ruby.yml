@@ -25,6 +25,7 @@ jobs:
 
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/ruby/Gemfile
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
 
     steps:
       - uses: actions/checkout@v2
@@ -49,6 +50,9 @@ jobs:
             ruby/tmp/x86_64-linux/enquo/*/target/
           key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
 
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
+
       - name: Run testsuite
         working-directory: ruby
         run: |
@@ -57,6 +61,9 @@ jobs:
   qc:
     runs-on: ubuntu-latest
     name: "Quality Control"
+
+    env:
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
 
     steps:
       - uses: actions/checkout@v2
@@ -76,6 +83,9 @@ jobs:
             ruby/ext/enquo/target/
             ruby/tmp/x86_64-linux/enquo/*/target/
           key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
+
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Check formatting
         working-directory: ruby/ext/enquo
