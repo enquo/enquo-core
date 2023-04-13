@@ -9,7 +9,7 @@ use crate::{Error, Field};
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct OREv1<const N: usize, const W: u16, T> {
-    #[serde(rename = "l", with = "serde_bytes")]
+    #[serde(rename = "l", with = "serde_bytes", default)]
     pub(crate) left: Option<Vec<u8>>,
     #[serde(rename = "r", with = "serde_bytes")]
     pub(crate) right: Vec<u8>,
