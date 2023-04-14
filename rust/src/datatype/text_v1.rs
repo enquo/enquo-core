@@ -1,7 +1,4 @@
 use ciborium::cbor;
-use rust_icu_sys::UColAttributeValue;
-use rust_icu_ucol::UCollator;
-use rust_icu_ustring::UChar;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::cmp::Ordering;
@@ -9,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use unicode_normalization::UnicodeNormalization;
 
 use crate::{
+    collator,
     crypto::{AES256v1, EREv1, OREv1},
     key_provider::{KeyProvider, Static},
     Error, Field,
@@ -191,13 +189,7 @@ impl TextV1 {
         match ordering {
             None => Ok(None),
             Some(len) => {
-                let mut collator = UCollator::try_from("en").map_err(|e| {
-                    Error::CollationError(format!("could not create collator: {e}"))
-                })?;
-                collator.set_strength(UColAttributeValue::UCOL_DEFAULT);
-                let uc_text = UChar::try_from(text)
-                    .map_err(|e| Error::CollationError(format!("invalid text string: {e}")))?;
-                let sort_key = collator.get_sort_key(&uc_text);
+                let sort_key = collator::generate_sort_key(text)?;
 
                 let mut order_vec: Vec<OREv1<1, 256, u8>> = vec![];
 
@@ -324,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn orderable_strings_compare_correctly() {
+    fn base_ascii_orderable_strings_compare_correctly() {
         let one = TextV1::new_with_unsafe_parts("one", b"1", &field(), Some(8)).unwrap();
         let two = TextV1::new_with_unsafe_parts("two", b"2", &field(), Some(8)).unwrap();
         let three = TextV1::new_with_unsafe_parts("three", b"3", &field(), Some(8)).unwrap();
@@ -335,6 +327,44 @@ mod tests {
         assert!(one < two);
         assert!(two > three);
         assert!(one < three);
+    }
+
+    #[cfg(feature = "icu")]
+    mod icu_collation {
+        use super::*;
+
+        #[test]
+        fn accented_orderable_strings_compare_correctly() {
+            let first = TextV1::new_with_unsafe_parts(
+                &String::from_utf8(b"R\xCC\x83amone".to_vec()).unwrap(),
+                b"",
+                &field(),
+                Some(8),
+            )
+            .unwrap();
+            let second = TextV1::new_with_unsafe_parts("Roman", b"", &field(), Some(8)).unwrap();
+
+            assert!(first < second);
+        }
+    }
+
+    #[cfg(not(feature = "icu"))]
+    mod lexicographic_collation {
+        use super::*;
+
+        #[test]
+        fn accented_orderable_strings_compare_weirdly() {
+            let first = TextV1::new_with_unsafe_parts("Roman", b"", &field(), Some(8)).unwrap();
+            let second = TextV1::new_with_unsafe_parts(
+                &String::from_utf8(b"R\xCC\x83amone".to_vec()).unwrap(),
+                b"",
+                &field(),
+                Some(8),
+            )
+            .unwrap();
+
+            assert!(first < second);
+        }
     }
 
     #[test]

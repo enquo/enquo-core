@@ -1,3 +1,4 @@
+mod collator;
 mod crypto;
 mod datatype;
 mod error;

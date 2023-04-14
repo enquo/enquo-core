@@ -1,7 +1,6 @@
 name: "Pre-merge Quality-Control: Rust"
 on:
   push:
-    branches: [main]
     paths:
       - rust/**
       - .github/workflows/qc_rust.yml
@@ -43,13 +42,14 @@ jobs:
         working-directory: rust
         run: |
           cargo test
+          cargo test --features icu
 
   qc:
     runs-on: ubuntu-latest
     name: "Quality Control"
 
     env:
-      RUST_ICU_MAJOR_VERSION_NUMBER: 70
+      RUST_ICU_MAJOR_VERSION_NUMBER: 72
 
     steps:
       - uses: actions/checkout@v2
@@ -69,9 +69,6 @@ jobs:
             target/
           key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
 
-      - name: Install build-deps
-        run: sudo apt update && sudo apt install -y libicu-dev
-
       - name: Check formatting
         working-directory: rust
         run: |
@@ -81,3 +78,4 @@ jobs:
         working-directory: rust
         run: |
           cargo clippy -- -D clippy::dbg_macro -D warnings
+          cargo clippy --features icu -- -D clippy::dbg_macro -D warnings

@@ -10,6 +10,9 @@ exclude = ["/.git*", "Cargo.toml.orig"]
 version = "0.0.0-git"
 edition = "2021"
 
+[features]
+icu = ["dep:rust_icu_sys", "dep:rust_icu_ucol", "dep:rust_icu_ustring"]
+
 [dependencies]
 aes-gcm-siv = "0.11"
 ciborium = "0.2"
@@ -22,9 +25,9 @@ sha2 = "0.10"
 thiserror = "1.0"
 unicode-normalization = "0.1"
 serde_with = "2.3"
-rust_icu_sys = { version = "3.0.0", default-features = false, features = ["renaming", "icu_version_in_env"] }
-rust_icu_ucol = { version = "3.0.0", default-features = false, features = ["renaming", "icu_version_in_env"] }
-rust_icu_ustring = { version = "3.0.0", default-features = false, features = ["renaming", "icu_version_in_env"] }
+rust_icu_sys = { version = "3.0.0", optional = true, default-features = false, features = ["renaming", "icu_version_in_env"] }
+rust_icu_ucol = { version = "3.0.0", optional = true, default-features = false, features = ["renaming", "icu_version_in_env"] }
+rust_icu_ustring = { version = "3.0.0", optional = true, default-features = false, features = ["renaming", "icu_version_in_env"] }
 
 [dev-dependencies]
 hex-literal = "0.3"

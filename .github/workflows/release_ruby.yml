@@ -3,7 +3,6 @@ on:
   # We build both release and pre-release gems for enquo-core, because of the
   # Rust toolchain build dep
   push:
-    branch: [main]
     paths:
       - ruby/**
       - rust/**
@@ -46,9 +45,17 @@ jobs:
         run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Do The Needful
+        if: github.ref == 'refs/heads/main'
         env:
           GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         working-directory: ruby
         run: |
           bundle install
           bundle exec rake gem:cross:${{ matrix.platform }} gem:push
+
+      - name: Do a Test Build
+        if: github.ref != 'refs/heads/main'
+        working-directory: ruby
+        run: |
+          bundle install
+          bundle exec rake gem:cross:${{ matrix.platform }}
