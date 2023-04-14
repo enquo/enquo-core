@@ -40,7 +40,7 @@ module Enquo
 			end
 
 			unless i >= -2 ** 63 && i < 2 ** 63
-				raise ArgumentError, "Enquo::Field#encrypt_i64 can only encrypt integers between -2^63 and 2^63-1 (got #{i})"
+				raise RangeError, "Enquo::Field#encrypt_i64 can only encrypt integers between -2^63 and 2^63-1 (got #{i})"
 			end
 
 			unless ctx.is_a?(String)
