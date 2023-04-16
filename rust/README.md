@@ -22,11 +22,12 @@ use rand::{Rng, SeedableRng};
 // The generated key *must* be from a cryptographically secure random number generator;
 // thread_rng() is not guaranteed to be secure enough.
 use rand_chacha::ChaCha20Rng;
+use std::sync::Arc;
 
 let key_data = ChaCha20Rng::from_entropy().gen::<[u8; 32]>();
 
 let root_key = Static::new(&key_data);
-let root = Root::new(&root_key).unwrap();
+let root = Root::new(Arc::new(root_key)).unwrap();
 ```
 
 Once you have a *root*, you can create a *field*, which represents the derived key for a given group of data values.
@@ -36,11 +37,12 @@ All the data that you want to compare together must be encrypted with the same f
 # use enquo_core::{KeyProvider, key_provider::Static, Root};
 # use rand::{Rng, SeedableRng};
 # use rand_chacha::ChaCha20Rng;
+# use std::sync::Arc;
 #
 # let key_data = ChaCha20Rng::from_entropy().gen::<[u8; 32]>();
 #
 # let root_key = Static::new(&key_data);
-# let root = Root::new(&root_key).unwrap();
+# let root = Root::new(Arc::new(root_key)).unwrap();
 
 let field = root.field(b"some_relation", b"some_field_name").unwrap();
 ```
@@ -51,12 +53,13 @@ To encrypt a value, you create a ciphertext of that value of the appropriate typ
 # use enquo_core::{KeyProvider, key_provider::Static, Root};
 # use rand::{Rng, SeedableRng};
 # use rand_chacha::ChaCha20Rng;
+# use std::sync::Arc;
 use enquo_core::Text;
 
 # let key_data = ChaCha20Rng::from_entropy().gen::<[u8; 32]>();
 #
 # let root_key = Static::new(&key_data);
-# let root = Root::new(&root_key).unwrap();
+# let root = Root::new(Arc::new(root_key)).unwrap();
 # let field = root.field(b"some_relation", b"some_field_name").unwrap();
 
 let ciphertext = Text::new("this is some text", b"test", &field).unwrap();

@@ -268,9 +268,10 @@ impl Eq for TextV1 {}
 mod tests {
     use super::*;
     use crate::{crypto::OREv1, key_provider::Static, Root};
+    use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(&Static::new(b"testkey"))
+        Root::new(Arc::new(Static::new(b"testkey")))
             .unwrap()
             .field(b"foo", b"bar")
             .unwrap()

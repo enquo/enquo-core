@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use crate::{Error, Field, KeyProvider};
 
-pub struct Root<'a> {
-    key_provider: &'a dyn KeyProvider,
+pub struct Root {
+    key_provider: Arc<dyn KeyProvider>,
 }
 
-impl Root<'_> {
-    pub fn new(key_provider: &dyn KeyProvider) -> Result<Root, Error> {
+impl Root {
+    pub fn new(key_provider: Arc<dyn KeyProvider>) -> Result<Root, Error> {
         Ok(Root { key_provider })
     }
 
@@ -22,11 +24,12 @@ impl Root<'_> {
 mod tests {
     use super::*;
     use crate::key_provider::Static;
+    use std::sync::Arc;
 
     #[test]
     fn generates_a_field() {
         let k = Static::new(&[0; 32]);
-        let root = Root::new(&k).unwrap();
+        let root = Root::new(Arc::new(k)).unwrap();
         root.field(b"users", b"full_name").unwrap();
     }
 }

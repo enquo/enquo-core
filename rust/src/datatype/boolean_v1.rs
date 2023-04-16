@@ -120,9 +120,10 @@ impl Eq for BooleanV1 {}
 mod tests {
     use super::*;
     use crate::{key_provider::Static, Root};
+    use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(&Static::new(b"testkey"))
+        Root::new(Arc::new(Static::new(b"testkey")))
             .unwrap()
             .field(b"foo", b"bar")
             .unwrap()

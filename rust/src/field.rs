@@ -35,11 +35,12 @@ mod tests {
     use super::*;
     use crate::key_provider::Static;
     use hex_literal::hex;
+    use std::sync::Arc;
 
     #[test]
     fn derives_field_key_correctly() {
-        let rk = Static::new(b"testkey");
-        let f = Root::new(&rk)
+        let rk = Arc::new(Static::new(b"testkey"));
+        let f = Root::new(rk)
             .unwrap()
             .field(b"users", b"full_name")
             .unwrap();

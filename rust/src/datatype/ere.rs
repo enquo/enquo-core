@@ -72,9 +72,10 @@ impl<const N: usize, const W: u16, T> Eq for ERE<N, W, T> where PlainText<N, W>:
 mod tests {
     use super::*;
     use crate::{key_provider::Static, Field, Root};
+    use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(&Static::new(b"testkey"))
+        Root::new(Arc::new(Static::new(b"testkey")))
             .unwrap()
             .field(b"foo", b"bar")
             .unwrap()
