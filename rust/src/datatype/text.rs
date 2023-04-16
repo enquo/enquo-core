@@ -45,16 +45,14 @@ impl Text {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<String, Error> {
         match self {
             Text::v1(t) => t.decrypt(context, field),
-            Text::Unknown => panic!("Can't decrypt Unknown version"),
+            Text::Unknown => Err(Error::UnknownVersionError()),
         }
     }
 
     pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         match self {
             Text::v1(t) => t.make_unqueryable(),
-            Text::Unknown => Err(Error::OperationError(
-                "can't make an Unknown version text value unqueryable".to_string(),
-            )),
+            Text::Unknown => Err(Error::UnknownVersionError()),
         }
     }
 }

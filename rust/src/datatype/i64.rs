@@ -26,10 +26,10 @@ impl I64 {
         }
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         match self {
             I64::v1(i) => i.make_unqueryable(),
-            I64::Unknown => panic!("Can't make Unknown version unqueryable"),
+            I64::Unknown => Err(Error::UnknownVersionError()),
         }
     }
 }

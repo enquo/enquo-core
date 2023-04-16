@@ -30,14 +30,14 @@ impl Boolean {
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<bool, Error> {
         match self {
             Boolean::v1(t) => t.decrypt(context, field),
-            Boolean::Unknown => panic!("Can't decrypt Unknown version"),
+            Boolean::Unknown => Err(Error::UnknownVersionError()),
         }
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         match self {
             Boolean::v1(t) => t.make_unqueryable(),
-            Boolean::Unknown => panic!("Can't clear_left_ciphertexts from Unknown version"),
+            Boolean::Unknown => Err(Error::UnknownVersionError()),
         }
     }
 }

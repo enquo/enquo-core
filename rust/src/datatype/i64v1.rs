@@ -75,8 +75,9 @@ impl I64v1 {
         }
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         self.ore_ciphertext = None;
+        Ok(())
     }
 }
 

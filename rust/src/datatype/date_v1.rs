@@ -103,10 +103,11 @@ impl DateV1 {
         Ok((s_date.y, s_date.m, s_date.d))
     }
 
-    pub fn make_unqueryable(&mut self) {
+    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
         self.year_ciphertext = None;
         self.month_ciphertext = None;
         self.day_ciphertext = None;
+        Ok(())
     }
 
     fn ore_parts(&self) -> (&OREv1<2, 256, u16>, &OREv1<1, 32, u8>, &OREv1<1, 32, u8>) {

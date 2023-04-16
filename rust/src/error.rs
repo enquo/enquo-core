@@ -16,4 +16,6 @@ pub enum Error {
     OperationError(String),
     #[error("failed to collate text string: {0}")]
     CollationError(String),
+    #[error("attempted operation on data value with Unknown version")]
+    UnknownVersionError(),
 }
