@@ -1,3 +1,5 @@
+require "date"
+
 module Enquo
 	class Error < StandardError; end
 end
@@ -12,7 +14,3 @@ rescue LoadError
 		raise LoadError, "Failed to load enquo.#{RbConfig::CONFIG["DLEXT"]}; either it hasn't been built, or was built incorrectly for your system"
 	end
 end
-
-require_relative "./enquo/root"
-require_relative "./enquo/root_key"
-require_relative "./enquo/field"
