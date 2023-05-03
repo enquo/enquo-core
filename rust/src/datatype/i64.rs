@@ -4,6 +4,7 @@ use super::i64v1::I64v1;
 use crate::{Error, Field};
 
 #[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[allow(clippy::large_enum_variant)] // ThisIsFineDog.jpg
 pub enum I64 {
     #[allow(non_camel_case_types)]
     v1(I64v1),
