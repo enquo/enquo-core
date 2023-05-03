@@ -20,8 +20,9 @@ const AES256v1_KEY_IDENTIFIER: &[u8] = b"AES256v1_key";
 
 impl AES256v1 {
     pub fn new(plaintext: &[u8], context: &[u8], field: &Field) -> Result<AES256v1, Error> {
-        let key: &[u8] = &field.subkey(AES256v1_KEY_IDENTIFIER)?;
-        let cipher = Aes256GcmSiv::new(key.into());
+        let mut key: aes_gcm_siv::Key<Aes256GcmSiv> = Default::default();
+        field.subkey(&mut key, AES256v1_KEY_IDENTIFIER)?;
+        let cipher = Aes256GcmSiv::new(&key);
 
         let mut rng = ChaChaRng::from_entropy();
         let mut nonce: Nonce = Default::default();
@@ -46,8 +47,9 @@ impl AES256v1 {
     }
 
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<Vec<u8>, Error> {
-        let key: &[u8] = &field.subkey(AES256v1_KEY_IDENTIFIER)?;
-        let cipher = Aes256GcmSiv::new(key.into());
+        let mut key: aes_gcm_siv::Key<Aes256GcmSiv> = Default::default();
+        field.subkey(&mut key, AES256v1_KEY_IDENTIFIER)?;
+        let cipher = Aes256GcmSiv::new(&key);
 
         cipher
             .decrypt(

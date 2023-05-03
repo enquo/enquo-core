@@ -11,8 +11,8 @@ impl Root {
         Ok(Root { key_provider })
     }
 
-    pub fn derive_key(&self, id: &[u8]) -> Result<Vec<u8>, Error> {
-        self.key_provider.derive_key(id)
+    pub fn derive_key(&self, derived_key: &mut [u8], id: &[u8]) -> Result<(), Error> {
+        self.key_provider.derive_key(derived_key, id)
     }
 
     pub fn field(&self, collection: &[u8], name: &[u8]) -> Result<Field, Error> {
@@ -28,7 +28,7 @@ mod tests {
 
     #[test]
     fn generates_a_field() {
-        let k = Static::new(&[0; 32]);
+        let k = Static::new(&[0; 32]).unwrap();
         let root = Root::new(Arc::new(k)).unwrap();
         root.field(b"users", b"full_name").unwrap();
     }

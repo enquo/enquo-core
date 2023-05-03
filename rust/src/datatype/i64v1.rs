@@ -14,7 +14,7 @@ pub struct I64v1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: Option<OREv1<8, 256, u64>>,
+    pub ore_ciphertext: Option<OREv1<8, 256>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -47,9 +47,9 @@ impl I64v1 {
             .map_err(|_| Error::EncodingError(format!("failed to convert i64 {i} to u64")))?;
 
         let ore = if include_left {
-            OREv1::<8, 256, u64>::new_with_left(u, context, field)?
+            OREv1::<8, 256>::new_with_left(u, context, field)?
         } else {
-            OREv1::<8, 256, u64>::new(u, context, field)?
+            OREv1::<8, 256>::new(u, context, field)?
         };
 
         Ok(I64v1 {
@@ -120,10 +120,12 @@ mod tests {
     use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(Arc::new(Static::new(b"testkey")))
-            .unwrap()
-            .field(b"foo", b"bar")
-            .unwrap()
+        Root::new(Arc::new(
+            Static::new(b"this is a suuuuper long test key").unwrap(),
+        ))
+        .unwrap()
+        .field(b"foo", b"bar")
+        .unwrap()
     }
 
     #[test]
@@ -155,6 +157,6 @@ mod tests {
     fn default_encryption_is_safe() {
         let value = I64v1::new(42, b"somecontext", &field()).unwrap();
 
-        assert!(matches!(value.ore_ciphertext.unwrap().left, None));
+        assert!(!value.ore_ciphertext.unwrap().has_left());
     }
 }

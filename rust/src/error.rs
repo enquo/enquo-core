@@ -12,6 +12,8 @@ pub enum Error {
     DecryptionError(String),
     #[error("failed to derive key material: {0}")]
     KeyError(String),
+    #[error("value was not within the valid range for the plaintext type: {0}")]
+    RangeError(String),
     #[error("could not perform requested operation: {0}")]
     OperationError(String),
     #[error("failed to collate text string: {0}")]

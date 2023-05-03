@@ -27,19 +27,19 @@ impl Text {
         )?)))
     }
 
-    pub fn length(&self) -> Option<ORE<8, 16, u32>> {
+    pub fn length(&self) -> Option<ORE<8, 16>> {
         match self {
             Text::v1(t) => t.length.as_ref().map(|l| ValueFrom::from(&t.key_id, l)),
             Text::Unknown => None,
         }
     }
 
-    pub fn query_length(len: u32, field: &Field) -> Result<ValueSet<ORE<8, 16, u32>>, Error> {
-        Ok(vec![ValueFrom::from(
+    pub fn query_length(len: u32, field: &Field) -> Result<ValueSet<ORE<8, 16>>, Error> {
+        vec![ValueFrom::from(
             &field.key_id()?,
             &TextV1::ore_length(len, field, true)?,
         )]
-        .into())
+        .try_into()
     }
 
     pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<String, Error> {

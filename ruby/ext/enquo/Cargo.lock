@@ -228,17 +228,17 @@ dependencies = [
 
 [[package]]
 name = "cretrit"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b424f56a53c945d026954e4b431c9d8bd3cd8c431574c8f4b77f59e860c366a"
+checksum = "e4ba460081834719b3cfc064384b7ba19c0292f8833c55169a5177d995f1b4a8"
 dependencies = [
  "aes",
  "cmac",
- "hmac",
  "num",
  "rand",
  "rand_chacha",
- "sha2",
+ "serde",
+ "serde_bytes",
  "thiserror",
  "zeroize",
 ]

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::Error;
+
 pub trait SetValue {
     fn is_compatible(&self, other: &Self) -> bool;
 }
@@ -23,11 +25,13 @@ where
     }
 }
 
-impl<T> From<Vec<T>> for ValueSet<T>
+impl<T> TryFrom<Vec<T>> for ValueSet<T>
 where
     T: SetValue + Serialize + for<'a> Deserialize<'a> + Eq,
 {
-    fn from(v: Vec<T>) -> ValueSet<T> {
-        ValueSet::<T>(v)
+    type Error = Error;
+
+    fn try_from(v: Vec<T>) -> Result<ValueSet<T>, Error> {
+        Ok(ValueSet::<T>(v))
     }
 }

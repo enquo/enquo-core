@@ -14,7 +14,7 @@ pub struct BooleanV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "o")]
-    pub ore_ciphertext: Option<OREv1<1, 2, bool>>,
+    pub ore_ciphertext: Option<OREv1<1, 2>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -52,9 +52,9 @@ impl BooleanV1 {
         let aes = AES256v1::new(&msg, context, field)?;
 
         let ore = if include_left {
-            OREv1::<1, 2, bool>::new_with_left(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
+            OREv1::<1, 2>::new_with_left(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
         } else {
-            OREv1::<1, 2, bool>::new(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
+            OREv1::<1, 2>::new(b, BOOLEANv1_ORE_KEY_IDENTIFIER, field)?
         };
 
         Ok(BooleanV1 {
@@ -123,10 +123,12 @@ mod tests {
     use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(Arc::new(Static::new(b"testkey")))
-            .unwrap()
-            .field(b"foo", b"bar")
-            .unwrap()
+        Root::new(Arc::new(
+            Static::new(b"this is a suuuuper long test key").unwrap(),
+        ))
+        .unwrap()
+        .field(b"foo", b"bar")
+        .unwrap()
     }
 
     #[test]
@@ -160,6 +162,6 @@ mod tests {
     fn default_encryption_is_safe() {
         let value = BooleanV1::new(true, b"somecontext", &field()).unwrap();
 
-        assert!(matches!(value.ore_ciphertext.unwrap().left, None));
+        assert!(!value.ore_ciphertext.unwrap().has_left());
     }
 }

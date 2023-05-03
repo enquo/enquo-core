@@ -14,11 +14,11 @@ pub struct DateV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "y")]
-    pub year_ciphertext: Option<OREv1<2, 256, u16>>,
+    pub year_ciphertext: Option<OREv1<2, 256>>,
     #[serde(rename = "m")]
-    pub month_ciphertext: Option<OREv1<1, 32, u8>>,
+    pub month_ciphertext: Option<OREv1<1, 32>>,
     #[serde(rename = "d")]
-    pub day_ciphertext: Option<OREv1<1, 32, u8>>,
+    pub day_ciphertext: Option<OREv1<1, 32>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -70,19 +70,19 @@ impl DateV1 {
             .map_err(|_| Error::EncodingError(format!("failed to convert i16 year {y} to u16")))?;
 
         let ore_year = if include_left {
-            OREv1::<2, 256, u16>::new_with_left(uy, context, field)?
+            OREv1::<2, 256>::new_with_left(uy, context, field)?
         } else {
-            OREv1::<2, 256, u16>::new(uy, context, field)?
+            OREv1::<2, 256>::new(uy, context, field)?
         };
         let ore_month = if include_left {
-            OREv1::<1, 32, u8>::new_with_left(m, context, field)?
+            OREv1::<1, 32>::new_with_left(m, context, field)?
         } else {
-            OREv1::<1, 32, u8>::new(m, context, field)?
+            OREv1::<1, 32>::new(m, context, field)?
         };
         let ore_day = if include_left {
-            OREv1::<1, 32, u8>::new_with_left(d, context, field)?
+            OREv1::<1, 32>::new_with_left(d, context, field)?
         } else {
-            OREv1::<1, 32, u8>::new(d, context, field)?
+            OREv1::<1, 32>::new(d, context, field)?
         };
 
         Ok(DateV1 {
@@ -110,7 +110,7 @@ impl DateV1 {
         Ok(())
     }
 
-    fn ore_parts(&self) -> (&OREv1<2, 256, u16>, &OREv1<1, 32, u8>, &OREv1<1, 32, u8>) {
+    fn ore_parts(&self) -> (&OREv1<2, 256>, &OREv1<1, 32>, &OREv1<1, 32>) {
         let y = self
             .year_ciphertext
             .as_ref()
@@ -161,10 +161,12 @@ mod tests {
     use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(Arc::new(Static::new(b"testkey")))
-            .unwrap()
-            .field(b"foo", b"bar")
-            .unwrap()
+        Root::new(Arc::new(
+            Static::new(b"this is a suuuuper long test key").unwrap(),
+        ))
+        .unwrap()
+        .field(b"foo", b"bar")
+        .unwrap()
     }
 
     #[test]
@@ -196,8 +198,8 @@ mod tests {
     fn default_encryption_is_safe() {
         let value = DateV1::new((1970, 1, 1), b"somecontext", &field()).unwrap();
 
-        assert!(matches!(value.year_ciphertext.unwrap().left, None));
-        assert!(matches!(value.month_ciphertext.unwrap().left, None));
-        assert!(matches!(value.day_ciphertext.unwrap().left, None));
+        assert!(!value.year_ciphertext.unwrap().has_left());
+        assert!(!value.month_ciphertext.unwrap().has_left());
+        assert!(!value.day_ciphertext.unwrap().has_left());
     }
 }

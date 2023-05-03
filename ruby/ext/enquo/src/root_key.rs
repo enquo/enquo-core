@@ -3,6 +3,8 @@ use magnus::{class, encoding, exception, function, prelude::*, RModule};
 use std::ops::Deref;
 use std::sync::Arc;
 
+use crate::maybe_raise;
+
 #[magnus::wrap(class = "Enquo::RootKey")]
 pub struct RootKey(Arc<dyn KeyProvider>);
 
@@ -52,7 +54,13 @@ fn new_static_root_key(k_str: magnus::RString) -> Result<RootKey, magnus::Error>
         ))
     }?;
 
-    Ok(RootKey(Arc::new(key_provider::Static::new(k))))
+    let mut key: [u8; 32] = Default::default();
+    key.copy_from_slice(k);
+
+    Ok(RootKey(Arc::new(maybe_raise(
+        key_provider::Static::new(&key),
+        None,
+    )?)))
 }
 
 pub fn init(base: &RModule) -> Result<(), magnus::Error> {

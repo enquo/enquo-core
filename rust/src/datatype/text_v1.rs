@@ -18,13 +18,13 @@ pub struct TextV1 {
     #[serde(rename = "a")]
     pub aes_ciphertext: AES256v1,
     #[serde(rename = "e")]
-    pub equality_ciphertext: Option<EREv1<16, 16, u64>>,
+    pub equality_ciphertext: Option<EREv1<16, 16>>,
     #[serde(rename = "h")]
     pub hash_code: Option<u32>,
     #[serde(rename = "o")]
-    pub order_code: Option<Vec<OREv1<1, 256, u8>>>,
+    pub order_code: Option<Vec<OREv1<1, 256>>>,
     #[serde(rename = "l")]
-    pub length: Option<OREv1<8, 16, u32>>,
+    pub length: Option<OREv1<8, 16>>,
     #[serde(rename = "k", with = "serde_bytes")]
     pub key_id: Vec<u8>,
 }
@@ -112,33 +112,25 @@ impl TextV1 {
     }
 
     fn eq_hash(text: &str, field: &Field) -> Result<u64, Error> {
-        let k = field.subkey(TEXT_V1_EQUALITY_HASH_KEY_IDENTIFIER)?;
-        let hasher = Static::new(&k);
+        let mut hasher_key: [u8; 32] = Default::default();
+        field.subkey(&mut hasher_key, TEXT_V1_EQUALITY_HASH_KEY_IDENTIFIER)?;
 
-        Ok(u64::from_be_bytes(
-            hasher.derive_key(text.as_bytes())?[0..8]
-                .try_into()
-                .map_err(|_| {
-                    Error::EncodingError(
-                        "Failed to convert derived key into integer array".to_string(),
-                    )
-                })?,
-        ))
+        let hasher = Static::new(&hasher_key)?;
+        let mut hash: [u8; 8] = Default::default();
+        hasher.derive_key(&mut hash, text.as_bytes())?;
+
+        Ok(u64::from_be_bytes(hash))
     }
 
-    fn ere_eq_hash(
-        hc: u64,
-        field: &Field,
-        allow_unsafe: bool,
-    ) -> Result<EREv1<16, 16, u64>, Error> {
+    fn ere_eq_hash(hc: u64, field: &Field, allow_unsafe: bool) -> Result<EREv1<16, 16>, Error> {
         if allow_unsafe {
-            Ok(EREv1::<16, 16, u64>::new_with_left(
+            Ok(EREv1::<16, 16>::new_with_left(
                 hc,
                 TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER,
                 field,
             )?)
         } else {
-            Ok(EREv1::<16, 16, u64>::new(
+            Ok(EREv1::<16, 16>::new(
                 hc,
                 TEXT_V1_EQUALITY_HASH_CIPHERTEXT_KEY_IDENTIFIER,
                 field,
@@ -146,19 +138,15 @@ impl TextV1 {
         }
     }
 
-    pub fn ore_length(
-        len: u32,
-        field: &Field,
-        allow_unsafe: bool,
-    ) -> Result<OREv1<8, 16, u32>, Error> {
+    pub fn ore_length(len: u32, field: &Field, allow_unsafe: bool) -> Result<OREv1<8, 16>, Error> {
         if allow_unsafe {
-            Ok(OREv1::<8, 16, u32>::new_with_left(
+            Ok(OREv1::<8, 16>::new_with_left(
                 len,
                 TEXT_V1_LENGTH_KEY_IDENTIFIER,
                 field,
             )?)
         } else {
-            Ok(OREv1::<8, 16, u32>::new(
+            Ok(OREv1::<8, 16>::new(
                 len,
                 TEXT_V1_LENGTH_KEY_IDENTIFIER,
                 field,
@@ -167,35 +155,31 @@ impl TextV1 {
     }
 
     fn hash_code(text: &str, field: &Field) -> Result<u32, Error> {
-        let k = field.subkey(TEXT_V1_HASH_CODE_KEY_IDENTIFIER)?;
-        let hasher = Static::new(&k);
+        let mut hasher_key: [u8; 32] = Default::default();
+        field.subkey(&mut hasher_key, TEXT_V1_HASH_CODE_KEY_IDENTIFIER)?;
 
-        Ok(u32::from_be_bytes(
-            hasher.derive_key(text.as_bytes())?[0..4]
-                .try_into()
-                .map_err(|_| {
-                    Error::EncodingError(
-                        "Failed to convert derived key into integer array".to_string(),
-                    )
-                })?,
-        ))
+        let hasher = Static::new(&hasher_key)?;
+        let mut hash: [u8; 4] = Default::default();
+        hasher.derive_key(&mut hash, text.as_bytes())?;
+
+        Ok(u32::from_be_bytes(hash))
     }
 
     fn order_code(
         text: &str,
         ordering: Option<u8>,
         field: &Field,
-    ) -> Result<Option<Vec<OREv1<1, 256, u8>>>, Error> {
+    ) -> Result<Option<Vec<OREv1<1, 256>>>, Error> {
         match ordering {
             None => Ok(None),
             Some(len) => {
                 let sort_key = collator::generate_sort_key(text)?;
 
-                let mut order_vec: Vec<OREv1<1, 256, u8>> = vec![];
+                let mut order_vec: Vec<OREv1<1, 256>> = vec![];
 
                 for i in 0..len {
                     let sort_key_component = sort_key.get(i as usize).unwrap_or(&0);
-                    let v = OREv1::<1, 256, u8>::new_with_left(
+                    let v = OREv1::<1, 256>::new_with_left(
                         *sort_key_component,
                         TEXT_V1_ORDER_CODE_KEY_IDENTIFIER,
                         field,
@@ -271,10 +255,12 @@ mod tests {
     use std::sync::Arc;
 
     fn field() -> Field {
-        Root::new(Arc::new(Static::new(b"testkey")))
-            .unwrap()
-            .field(b"foo", b"bar")
-            .unwrap()
+        Root::new(Arc::new(
+            Static::new(b"this is a suuuuper long test key").unwrap(),
+        ))
+        .unwrap()
+        .field(b"foo", b"bar")
+        .unwrap()
     }
 
     #[test]
@@ -407,7 +393,7 @@ mod tests {
     fn default_encryption_is_safe() {
         let value = TextV1::new("Hello, Enquo!", b"somecontext", &field()).unwrap();
 
-        assert!(matches!(value.equality_ciphertext.unwrap().left, None));
+        assert!(!value.equality_ciphertext.unwrap().has_left());
         assert!(matches!(value.hash_code, None));
     }
 
@@ -472,7 +458,7 @@ mod tests {
     fn ascii_length() {
         let t = TextV1::new("ohai!", b"somecontext", &field()).unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(5, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
+            OREv1::<8, 16>::new_with_left(5u8, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
@@ -486,7 +472,7 @@ mod tests {
         )
         .unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(4, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
+            OREv1::<8, 16>::new_with_left(4u8, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
@@ -500,7 +486,7 @@ mod tests {
         )
         .unwrap();
         let len =
-            OREv1::<8, 16, u32>::new_with_left(5, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
+            OREv1::<8, 16>::new_with_left(5u8, TEXT_V1_LENGTH_KEY_IDENTIFIER, &field()).unwrap();
 
         assert_eq!(t.length.unwrap(), len);
     }
