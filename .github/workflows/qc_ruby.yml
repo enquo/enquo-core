@@ -29,9 +29,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install ruby
         uses: ruby/setup-ruby@v1
@@ -42,14 +40,15 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
+            ~/.cargo
             ruby/ext/enquo/target/
             ruby/tmp/x86_64-linux/enquo/*/target/
-          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-ruby
 
       - name: Run testsuite
         working-directory: ruby
+        env:
+          RUSTFLAGS: -D warnings
         run: |
           bundle exec rake test
 
@@ -62,19 +61,17 @@ jobs:
 
       - name: Install rust
         id: rust-install
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt, clippy
 
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
+            ~/.cargo
             ruby/ext/enquo/target/
             ruby/tmp/x86_64-linux/enquo/*/target/
-          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-ruby
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-ruby
 
       - name: Check formatting
         working-directory: ruby/ext/enquo
@@ -84,4 +81,4 @@ jobs:
       - name: Consult Clippy
         working-directory: ruby/ext/enquo
         run: |
-          cargo clippy -- -D clippy::dbg_macro -D warnings
+          cargo clippy -- -D warnings

@@ -32,6 +32,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
@@ -40,9 +42,6 @@ jobs:
 
       - name: Workaround for https://github.com/actions/checkout/issues/290
         run: git fetch --force --tags
-
-      - name: Install build-deps
-        run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Do The Needful
         if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'

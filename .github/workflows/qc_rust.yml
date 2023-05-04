@@ -23,23 +23,22 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
+            ~/.cargo
             target/
-          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-cargo
 
       - name: Install build-deps
         run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Run testsuite
         working-directory: rust
+        env:
+          RUSTFLAGS: -D warnings
         run: |
           cargo test
           cargo test --features icu
@@ -56,18 +55,16 @@ jobs:
 
       - name: Install rust
         id: rust-install
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt, clippy
 
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
+            ~/.cargo
             target/
-          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-cargo
 
       - name: Check formatting
         working-directory: rust
@@ -77,5 +74,5 @@ jobs:
       - name: Consult Clippy
         working-directory: rust
         run: |
-          cargo clippy -- -D clippy::dbg_macro -D warnings
-          cargo clippy --features icu -- -D clippy::dbg_macro -D warnings
+          cargo clippy -- -D warnings
+          cargo clippy --features icu -- -D warnings

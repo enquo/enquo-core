@@ -17,17 +17,14 @@ jobs:
 
       - name: Install rust
         id: rust-install
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
+            ~/.cargo
             target/
-          key: ${{ runner.os }}-${{ steps.rust-install.outputs.rustc_hash}}-cargo
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-cargo
 
       - name: Set Cargo.toml version
         shell: bash
@@ -38,9 +35,6 @@ jobs:
           mv Cargo.toml Cargo.toml.tmpl
           sed "s/0\\.0\\.0-git/${RELEASE_TAG##*\/v}/" Cargo.toml.tmpl >Cargo.toml
           rm Cargo.toml.tmpl
-
-      - name: Install build-deps
-        run: sudo apt update && sudo apt install -y libicu-dev
 
       - name: Do The Needful
         working-directory: rust
