@@ -60,7 +60,7 @@ To encrypt a value, you create a ciphertext of that value of the appropriate typ
 # use rand::{Rng, SeedableRng};
 # use rand_chacha::ChaCha20Rng;
 # use std::sync::Arc;
-use enquo_core::Text;
+use enquo_core::datatype::Text;
 
 # fn main() -> Result<(), Error> {
 # let key_data = ChaCha20Rng::from_entropy().gen::<[u8; 32]>();

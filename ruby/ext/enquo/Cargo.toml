@@ -1,11 +1,17 @@
 [package]
 name = "enquo"
+description = "Rust dynamic library for Ruby enquo-core"
+license = "MIT"
+repository = "https://github.com/enquo/enquo-core"
+homepage = "https://enquo.org"
+readme = "../../../README.md"
+keywords = ["encryption", "search", "query", "ore", "ruby"]
+categories = ["algorithms", "cryptography"]
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
 enquo-core = { path = "../../../rust" }
-lazy_static = "1.0"
 serde_json = "1.0"
 magnus = "0.5"
 hex = "0.4"

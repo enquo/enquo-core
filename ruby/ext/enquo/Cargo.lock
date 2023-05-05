@@ -368,7 +368,6 @@ version = "0.0.0"
 dependencies = [
  "enquo-core",
  "hex",
- "lazy_static",
  "magnus",
  "serde_json",
 ]
@@ -380,12 +379,10 @@ dependencies = [
  "aes-gcm-siv",
  "ciborium",
  "cretrit",
- "hmac",
  "rand_chacha",
  "serde",
  "serde_bytes",
  "serde_with",
- "sha2",
  "thiserror",
  "unicode-normalization",
 ]
@@ -440,15 +437,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hmac"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
-dependencies = [
- "digest",
-]
 
 [[package]]
 name = "iana-time-zone"
@@ -896,17 +884,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "sha2"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9db03534dff993187064c4e0c05a5708d2a9728ace9a8959b77bedf415dac5"
-dependencies = [
- "cfg-if",
- "cpufeatures",
- "digest",
 ]
 
 [[package]]

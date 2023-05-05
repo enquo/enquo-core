@@ -1,4 +1,10 @@
-use enquo_core::{Boolean, Date, Error, Text, I64};
+//! Everything related to `Enquo::Field`
+//!
+
+use enquo_core::{
+    datatype::{Boolean, Date, Text, I64},
+    Error,
+};
 use magnus::{
     class, eval, exception, function, method,
     prelude::*,
@@ -7,10 +13,11 @@ use magnus::{
 };
 use std::ops::Deref;
 
-use crate::maybe_raise;
+use crate::{maybe_raise, string_to_bytes};
 
+/// Wrapper struct for the `enquo_core` `Field` struct
 #[magnus::wrap(class = "Enquo::Field")]
-pub struct Field(pub enquo_core::Field);
+pub(crate) struct Field(pub(crate) enquo_core::Field);
 
 impl Deref for Field {
     type Target = enquo_core::Field;
@@ -20,17 +27,32 @@ impl Deref for Field {
     }
 }
 
+/// The results of parsing all the various options that can be passed when encrypting a value
 struct EncryptOpts<T>
 where
     T: TryConvert,
 {
+    /// The value to be encrypted
     input: T,
+    /// The encryption context
     context: Vec<u8>,
+    /// Whether the ciphertext should be created with unsafe parts included
     unsafe_ok: bool,
+    /// Whether the ciphertext should have all querying portions removed
     no_query: bool,
+    /// (Text only) how long to make the ordering code
     order_prefix_length: Option<u8>,
 }
 
+/// Convert *actual* Ruby booleans into Rust `bool`
+///
+/// Magnus supports converting into a Rust `bool`, but it takes Ruby's extremely laissez-faire
+/// approach, where basically everything is `true` unless it's strictly defined as `false`
+/// (basically just `false` and `nil`).
+///
+/// I, on the other hand, want to accept only *actual booleans* when encrypting a bool, so... here
+/// we are.
+///
 fn strict_bool(value: Option<magnus::Value>, e: &str) -> Result<Option<bool>, magnus::Error> {
     match value {
         None => Ok(None),
@@ -49,6 +71,11 @@ fn strict_bool(value: Option<magnus::Value>, e: &str) -> Result<Option<bool>, ma
     }
 }
 
+/// Convert *actual* Ruby Integers into Rust integer types
+///
+/// Magnus will accept various floaty-type things and truncate them into integers, which we really,
+/// absolutely, do not want.
+///
 fn strict_int<T: TryConvert>(
     value: Option<magnus::Value>,
     e: &str,
@@ -68,6 +95,9 @@ fn strict_int<T: TryConvert>(
     }
 }
 
+/// Transmogrify the range of options that can be passed to an encrypt function into a more
+/// appealing structure
+///
 fn parse_encrypt_args<T>(args: &[magnus::Value]) -> Result<EncryptOpts<T>, magnus::Error>
 where
     T: TryConvert,
@@ -96,14 +126,14 @@ where
 
     Ok(EncryptOpts::<T> {
         input,
-        // Safe because we immediately copy away the value
-        context: unsafe { context_str.as_slice().to_vec() },
+        context: string_to_bytes(context_str),
         unsafe_ok,
         no_query,
         order_prefix_length,
     })
 }
 
+#[allow(clippy::missing_docs_in_private_items)] // I think the names speak for themselves, really
 impl Field {
     fn key_id(&self) -> Result<String, magnus::Error> {
         maybe_raise(self.0.key_id().map(hex::encode), None)
@@ -116,7 +146,12 @@ impl Field {
             Some(opts.input),
             "Enquo::Field#encrypt_boolean can only encrypt booleans",
         )?
-        .expect("CAN'T HAPPEN: got None from strict_bool(Some(opts.input)) !!!");
+        .ok_or_else(|| {
+            magnus::Error::new(
+                exception::runtime_error(),
+                "CAN'T HAPPEN: got None from strict_bool(Some(opts.input))",
+            )
+        })?;
 
         let mut res = maybe_raise(
             if opts.unsafe_ok {
@@ -137,6 +172,7 @@ impl Field {
         )
     }
 
+    #[allow(clippy::needless_pass_by_value)] // Magnus is not friends with &str args
     fn decrypt_boolean(&self, ciphertext: String, context: String) -> Result<bool, magnus::Error> {
         let ct: Boolean = maybe_raise(
             serde_json::from_str(&ciphertext),
@@ -183,6 +219,7 @@ impl Field {
         )
     }
 
+    #[allow(clippy::needless_pass_by_value)] // Magnus is not friends with &str args
     fn decrypt_i64(&self, ciphertext: String, context: String) -> Result<i64, magnus::Error> {
         let ct: I64 = maybe_raise(
             serde_json::from_str(&ciphertext),
@@ -229,6 +266,7 @@ impl Field {
         )
     }
 
+    #[allow(clippy::needless_pass_by_value)] // Magnus is not friends with &str args
     fn decrypt_date(
         &self,
         ciphertext: String,
@@ -290,6 +328,7 @@ impl Field {
         )
     }
 
+    #[allow(clippy::needless_pass_by_value)] // Magnus is not friends with &str args
     fn decrypt_text(&self, ciphertext: String, context: String) -> Result<String, magnus::Error> {
         let ct: Text = maybe_raise(
             serde_json::from_str(&ciphertext),
@@ -308,7 +347,8 @@ impl Field {
     }
 }
 
-pub fn init(base: &RModule) -> Result<(), magnus::Error> {
+/// Create the Field class and setup all its methods
+pub(crate) fn init(base: RModule) -> Result<(), magnus::Error> {
     let class = base.define_class("Field", class::object())?;
 
     class.define_singleton_method(

@@ -1,3 +1,10 @@
+//! First version of an order-revealing ciphertext, of arbitrary dimensions
+//!
+
+// This trips out on deriving Serialize in 1.69.0, doesn't seem to trip in nightly as of
+// 2023-05-05.  Revisit after 1.70 is out, see if the problem has gone away
+#![allow(clippy::arithmetic_side_effects)]
+
 use cretrit::{aes128v1::ore, PlainText};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -5,15 +12,39 @@ use std::cmp::Ordering;
 
 use crate::{Error, Field};
 
+/// An order-revealing ciphertext
+///
+/// Can encrypt an arbitrary-sized unsigned integer into a form where the value can't be
+/// determined, but the ordering relative to other similarly-encrypted integers *can* be discerned.
+/// It's like magic, but real.
+///
+/// `N` is the number of separate blocks the value is divided into, while `W` is the "width" of
+/// each block (the number of discrete values that the block can represent).  The range of a given
+/// `OREv1`, therefore, is zero to W^N-1, inclusive.
+///
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[non_exhaustive]
+#[doc(hidden)]
 pub struct OREv1<const N: usize, const W: u16> {
+    /// Yon magical ciphertext
     #[serde(rename = "o")]
     pub(crate) ore_ciphertext: ore::CipherText<N, W>,
 }
 
 impl<const N: usize, const W: u16> OREv1<N, W> {
-    pub fn new<T>(plaintext: T, subkey_id: &[u8], field: &Field) -> Result<OREv1<N, W>, Error>
+    /// Create a new `OREv1` ciphertext
+    ///
+    /// # Errors
+    ///
+    /// Can fail if the encryption fails, or if the value is outside the range of valid values
+    /// given the N, W of the type.
+    ///
+    pub(crate) fn new<T>(
+        plaintext: T,
+        subkey_id: &[u8],
+        field: &Field,
+    ) -> Result<OREv1<N, W>, Error>
     where
         PlainText<N, W>: TryFrom<T>,
         <PlainText<N, W> as TryFrom<T>>::Error: std::fmt::Display,
@@ -30,7 +61,11 @@ impl<const N: usize, const W: u16> OREv1<N, W> {
         Ok(OREv1::<N, W> { ore_ciphertext: ct })
     }
 
-    pub fn new_with_left<T>(
+    /// Create a new `OREv1` ciphertext with reduced security guarantees
+    ///
+    /// See also: `new()`.
+    ///
+    pub(crate) fn new_with_left<T>(
         plaintext: T,
         subkey_id: &[u8],
         field: &Field,
@@ -51,10 +86,14 @@ impl<const N: usize, const W: u16> OREv1<N, W> {
         Ok(OREv1::<N, W> { ore_ciphertext: ct })
     }
 
-    pub fn has_left(&self) -> bool {
+    /// Helps tests to make sure that `new()` isn't doing something insecure
+    #[cfg(test)]
+    pub(crate) fn has_left(&self) -> bool {
         self.ore_ciphertext.has_left()
     }
 
+    /// Generate a Cretrit cipher with which to encrypt the value
+    ///
     fn cipher(subkey_id: &[u8], field: &Field) -> Result<ore::Cipher<N, W>, Error> {
         let mut key: [u8; 32] = Default::default();
 

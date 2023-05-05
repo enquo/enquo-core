@@ -21,7 +21,7 @@ shared_examples "an encrypt function" do
 
 	it "has a key ID" do
 		expect(v1).to have_key(:k)
-		expect(v1[:k].length).to eq(4)
+		expect(v1[:k].length).to eq(8)
 		expect(v1[:k]).to all be_between(0, 255)
 	end
 

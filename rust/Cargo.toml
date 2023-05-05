@@ -16,12 +16,10 @@ icu = ["dep:rust_icu_sys", "dep:rust_icu_ucol", "dep:rust_icu_ustring"]
 [dependencies]
 aes-gcm-siv = "0.11"
 ciborium = "0.2"
-hmac = "0.12"
 cretrit = { version = "0.5", features = ["serde"] }
 rand_chacha = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11"
-sha2 = "0.10"
 thiserror = "1.0"
 unicode-normalization = "0.1"
 serde_with = "2.3"

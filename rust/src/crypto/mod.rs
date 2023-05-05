@@ -1,3 +1,9 @@
+//! Cryptographic primitives
+//!
+//! These are the basic building blocks that can be assembled in various ways to create useful
+//! datatypes for various purposes.
+//!
+
 mod aes256v1;
 mod ere_v1;
 mod ore_v1;

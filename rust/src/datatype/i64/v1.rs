@@ -1,3 +1,8 @@
+//! Our first attempt at a queryable encrypted signed 64-bit integer
+//!
+//! Seems to be working OK so far, at least.
+//!
+
 use ciborium::{cbor, value::Value};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -5,33 +10,52 @@ use std::cmp::Ordering;
 
 use crate::{
     crypto::{AES256v1, OREv1},
+    field::KeyId,
+    util::check_overflow,
     Error, Field,
 };
 
+/// The data itself
+///
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct I64v1 {
+#[doc(hidden)]
+pub struct V1 {
+    /// The actual encrypted value
     #[serde(rename = "a")]
-    pub aes_ciphertext: AES256v1,
+    aes_ciphertext: AES256v1,
+    /// The value encrypted in a form that can be queried
     #[serde(rename = "o")]
-    pub ore_ciphertext: Option<OREv1<8, 256>>,
+    ore_ciphertext: Option<OREv1<8, 256>>,
+    /// A serialisation-friendly form of the field key ID
     #[serde(rename = "k", with = "serde_bytes")]
-    pub key_id: Vec<u8>,
+    kid: Vec<u8>,
 }
 
-// AKA "2**63"
-const I64_OFFSET: i128 = 9_223_372_036_854_775_808;
+/// The value that needs to be added/subtracted to turn an i64 into a u64 (and vice versa)
+///
+const I64_OFFSET: i128 = 0x8000_0000_0000_0000;
 
-impl I64v1 {
-    pub fn new(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
+impl V1 {
+    /// Create an encrypted bigint
+    ///
+    pub(crate) fn new(i: i64, context: &[u8], field: &Field) -> Result<V1, Error> {
         Self::encrypt(i, context, field, false)
     }
 
-    pub fn new_with_unsafe_parts(i: i64, context: &[u8], field: &Field) -> Result<I64v1, Error> {
+    /// Create an encrypted bigint with lower security guarantees
+    ///
+    pub(crate) fn new_with_unsafe_parts(
+        i: i64,
+        context: &[u8],
+        field: &Field,
+    ) -> Result<V1, Error> {
         Self::encrypt(i, context, field, true)
     }
 
-    fn encrypt(i: i64, context: &[u8], field: &Field, include_left: bool) -> Result<I64v1, Error> {
+    /// Do the hard yards of actually poking the cryptography and assembling the struct
+    ///
+    fn encrypt(i: i64, context: &[u8], field: &Field, include_left: bool) -> Result<V1, Error> {
         let v = cbor!(i).map_err(|e| {
             Error::EncodingError(format!("failed to convert i64 to ciborium value: {e}"))
         })?;
@@ -42,9 +66,12 @@ impl I64v1 {
 
         let aes = AES256v1::new(&msg, context, field)?;
 
-        let u: u64 = ((i as i128) + I64_OFFSET)
-            .try_into()
-            .map_err(|_| Error::EncodingError(format!("failed to convert i64 {i} to u64")))?;
+        let u: u64 = (check_overflow(
+            i128::from(i).overflowing_add(I64_OFFSET),
+            "while offsetting i64",
+        )?)
+        .try_into()
+        .map_err(|e| Error::EncodingError(format!("failed to convert i64 {i} to u64 ({e})")))?;
 
         let ore = if include_left {
             OREv1::<8, 256>::new_with_left(u, context, field)?
@@ -52,22 +79,25 @@ impl I64v1 {
             OREv1::<8, 256>::new(u, context, field)?
         };
 
-        Ok(I64v1 {
+        Ok(V1 {
             aes_ciphertext: aes,
             ore_ciphertext: Some(ore),
-            key_id: field.key_id()?,
+            kid: field.key_id()?.into(),
         })
     }
 
-    pub fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
+    /// Do the decryption
+    ///
+    pub(crate) fn decrypt(&self, context: &[u8], field: &Field) -> Result<i64, Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
         let v = ciborium::de::from_reader(&*pt)
             .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
+        #[allow(clippy::wildcard_enum_match_arm)] // Nope, that's exactly what I want
         match v {
-            Value::Integer(i) => Ok(i.try_into().map_err(|_| {
-                Error::DecodingError("decoded value is not a valid i64".to_string())
+            Value::Integer(i) => Ok(i.try_into().map_err(|e| {
+                Error::DecodingError(format!("decoded value is not a valid i64 ({e})"))
             })?),
             _ => Err(Error::DecodingError(format!(
                 "Decoded value is not an integer (got {v:?})"
@@ -75,17 +105,27 @@ impl I64v1 {
         }
     }
 
-    pub fn make_unqueryable(&mut self) -> Result<(), Error> {
+    /// Return the ciphertext's field key ID, in canonical form
+    pub(crate) fn key_id(&self) -> KeyId {
+        let mut key_id: KeyId = Default::default();
+        key_id.copy_from_slice(&self.kid);
+        key_id
+    }
+
+    /// Strip out everything that makes the "queryable" bit work
+    pub(crate) fn make_unqueryable(&mut self) {
         self.ore_ciphertext = None;
-        Ok(())
     }
 }
 
-impl Ord for I64v1 {
+impl Ord for V1 {
+    #[allow(clippy::panic, clippy::expect_used)] // No way to signal error from impl Ord
     fn cmp(&self, other: &Self) -> Ordering {
-        if self.key_id != other.key_id {
-            panic!("Cannot compare ciphertexts from different keys");
-        }
+        assert!(
+            self.kid == other.kid,
+            "Cannot compare ciphertexts from different keys"
+        );
+
         let lhs = self
             .ore_ciphertext
             .as_ref()
@@ -99,19 +139,19 @@ impl Ord for I64v1 {
     }
 }
 
-impl PartialOrd for I64v1 {
+impl PartialOrd for V1 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for I64v1 {
+impl PartialEq for V1 {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
-impl Eq for I64v1 {}
+impl Eq for V1 {}
 
 #[cfg(test)]
 mod tests {
@@ -130,14 +170,14 @@ mod tests {
 
     #[test]
     fn value_round_trips() {
-        let value = I64v1::new(42, b"context", &field()).unwrap();
+        let value = V1::new(42, b"context", &field()).unwrap();
 
         assert_eq!(42, value.decrypt(b"context", &field()).unwrap());
     }
 
     #[test]
     fn incorrect_context_fails() {
-        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
+        let value = V1::new(42, b"somecontext", &field()).unwrap();
 
         let err = value.decrypt(b"othercontext", &field()).err();
         assert!(matches!(err, Some(Error::DecryptionError(_))));
@@ -145,7 +185,7 @@ mod tests {
 
     #[test]
     fn serialised_ciphertext_size() {
-        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
+        let value = V1::new(42, b"somecontext", &field()).unwrap();
         let serde_value = cbor!(value).unwrap();
 
         let mut s: Vec<u8> = vec![];
@@ -155,7 +195,7 @@ mod tests {
 
     #[test]
     fn default_encryption_is_safe() {
-        let value = I64v1::new(42, b"somecontext", &field()).unwrap();
+        let value = V1::new(42, b"somecontext", &field()).unwrap();
 
         assert!(!value.ore_ciphertext.unwrap().has_left());
     }
