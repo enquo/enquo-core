@@ -19,6 +19,8 @@ jobs:
     strategy:
       matrix:
         ruby-version: ['2.7', '3.0', '3.1', '3.2']
+        rust-toolchain: ['stable', 'nightly']
+      fail-fast: false
 
     name: "Test"
 
@@ -29,7 +31,10 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@stable
+        id: rust-install
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust-toolchain }}
 
       - name: Install ruby
         uses: ruby/setup-ruby@v1
@@ -50,19 +55,26 @@ jobs:
         env:
           RUSTFLAGS: -D warnings
         run: |
+          rustup override set ${{ matrix.rust-toolchain }}
           bundle exec rake test
 
   qc:
     runs-on: ubuntu-latest
     name: "Quality Control"
 
+    strategy:
+      matrix:
+        rust-toolchain: ['stable', 'nightly']
+      fail-fast: false
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Install rust
         id: rust-install
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ matrix.rust-toolchain }}
           components: rustfmt, clippy
 
       - uses: actions/cache@v2
@@ -76,9 +88,9 @@ jobs:
       - name: Check formatting
         working-directory: ruby/ext/enquo
         run: |
-          cargo fmt --check
+          cargo +${{ steps.rust-install.outputs.name }} fmt --check
 
       - name: Consult Clippy
         working-directory: ruby/ext/enquo
         run: |
-          cargo clippy -- -D warnings
+          cargo +${{ steps.rust-install.outputs.name }} clippy -- -D warnings

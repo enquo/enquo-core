@@ -1,0 +1,89 @@
+name: Periodic audits
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    paths:
+      - .github/workflows/audit.yml
+
+jobs:
+  security:
+    name: Verify that all our deps are secure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        id: rust-install
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo
+            target/
+          key: ${{ runner.os }}-${{ steps.rust-install.outputs.cachekey }}-audit
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Audit rust
+        working-directory: rust
+        run: |
+          cargo audit -D warnings
+
+      - name: Audit ruby
+        working-directory: ruby/ext/enquo
+        run: |
+          cargo audit -D warnings
+
+  nightly_compat:
+    name: See if future Rust versions will break anything
+    runs-on: ubuntu-latest
+
+    env:
+      RUST_ICU_MAJOR_VERSION_NUMBER: 70
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        id: rust-install
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+
+      # Normally this would be where we use actions/cache, but since nightly
+      # is likely to change on every run, it doesn't seem worth it
+
+      - name: Install build-deps
+        run: sudo apt update && sudo apt install -y libicu-dev
+
+      - name: Test rust
+        working-directory: rust
+        env:
+          RUSTFLAGS: -D warnings
+        run: |
+          cargo +${{ steps.rust-install.outputs.name }} test
+          cargo +${{ steps.rust-install.outputs.name }} test --all-features
+
+      - name: Clippy rust
+        working-directory: rust
+        run: |
+          cargo +${{ steps.rust-install.outputs.name }} clippy -- -D warnings
+          cargo +${{ steps.rust-install.outputs.name }} clippy --all-features -- -D warnings
+
+      - name: Build ruby
+        working-directory: ruby/ext/enquo
+        env:
+          RUSTFLAGS: -D warnings
+        run: |
+          cargo +${{ steps.rust-install.outputs.name }} build
+
+      - name: Clippy ruby
+        working-directory: ruby/ext/enquo
+        run: |
+          cargo +${{ steps.rust-install.outputs.name }} clippy -- -D warnings

@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     name: "Test"
 
+    strategy:
+      matrix:
+        rust-toolchain: ['stable', 'nightly']
+      fail-fast: false
+
     env:
       RUST_ICU_MAJOR_VERSION_NUMBER: 70
 
@@ -23,7 +28,10 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@stable
+        id: rust-install
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust-toolchain }}
 
       - uses: actions/cache@v2
         with:
@@ -40,8 +48,8 @@ jobs:
         env:
           RUSTFLAGS: -D warnings
         run: |
-          cargo test
-          cargo test --features icu
+          cargo +${{ steps.rust-install.outputs.name }} test
+          cargo +${{ steps.rust-install.outputs.name }} test --features icu
 
   qc:
     runs-on: ubuntu-latest
@@ -74,5 +82,5 @@ jobs:
       - name: Consult Clippy
         working-directory: rust
         run: |
-          cargo clippy -- -D warnings
-          cargo clippy --features icu -- -D warnings
+          cargo +${{ steps.rust-install.outputs.name }} clippy -- -D warnings
+          cargo +${{ steps.rust-install.outputs.name }} clippy --features icu -- -D warnings
