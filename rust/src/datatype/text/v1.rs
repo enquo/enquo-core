@@ -131,7 +131,7 @@ impl V1 {
     pub(crate) fn decrypt(&self, context: &[u8], field: &Field) -> Result<String, Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
-        let s_text = ciborium::de::from_reader::<'_, String, &[u8]>(&*pt)
+        let s_text = ciborium::de::from_reader::<String, &[u8]>(&*pt)
             .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
         Ok(s_text)

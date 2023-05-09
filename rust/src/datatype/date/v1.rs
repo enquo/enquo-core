@@ -129,7 +129,7 @@ impl V1 {
     pub(crate) fn decrypt(&self, context: &[u8], field: &Field) -> Result<(i16, u8, u8), Error> {
         let pt = self.aes_ciphertext.decrypt(context, field)?;
 
-        let s_date = ciborium::de::from_reader::<'_, StoredDate, &[u8]>(&*pt)
+        let s_date = ciborium::de::from_reader::<StoredDate, &[u8]>(&*pt)
             .map_err(|e| Error::DecodingError(format!("could not decode decrypted value: {e}")))?;
 
         Ok((s_date.y, s_date.m, s_date.d))

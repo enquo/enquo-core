@@ -15,7 +15,7 @@ icu = ["dep:rust_icu_sys", "dep:rust_icu_ucol", "dep:rust_icu_ustring"]
 
 [dependencies]
 aes-gcm-siv = "0.11"
-ciborium = "0.2"
+ciborium = "0.2.1"
 cretrit = { version = "0.5", features = ["serde"] }
 rand_chacha = "0.3"
 serde = { version = "1.0", features = ["derive"] }
