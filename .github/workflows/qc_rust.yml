@@ -84,3 +84,8 @@ jobs:
         run: |
           cargo +${{ steps.rust-install.outputs.name }} clippy -- -D warnings
           cargo +${{ steps.rust-install.outputs.name }} clippy --features icu -- -D warnings
+
+      - name: Check docs
+        working-directory: rust
+        run: |
+          cargo +${{ steps.rust-install.outputs.name }} rustdoc -- -D warnings

@@ -3,10 +3,10 @@
 //! This is the Rust library that provides the core functionality required for the entireity of
 //! [the Enquo project](https://enquo.org).  The primary types you'll want to use are:
 //!
-//! * [`Root`](crate::Root), which is the holder of the root key (from which all other encryption keys are
+//! * [`Root`], which is the holder of the root key (from which all other encryption keys are
 //!   derived), and can create [`Field`]s that are what does the actual encryption;
 //!
-//! * [`Field`](crate::Field), which represents a collection of values that should be queryable as a group (such as
+//! * [`Field`], which represents a collection of values that should be queryable as a group (such as
 //!   a column of data in an RDBMS table); and
 //!
 //! * The various datatypes, which live under [`datatype`], and which represent common forms of
