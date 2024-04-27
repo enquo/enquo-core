@@ -61,6 +61,7 @@ rustflags = [
     "-Wclippy::use_debug",
     "-Wclippy::wildcard_enum_match_arm",
     "-Welided_lifetimes_in_paths",
+    "-Wdead_code",
     "-Wexplicit_outlives_requirements",
     "-Wfuture_incompatible",
     "-Wkeyword_idents",
@@ -81,6 +82,5 @@ rustflags = [
     "-Wunused_lifetimes",
     "-Wunused_macro_rules",
     "-Wunused_qualifications",
-    "-Wunused_tuple_struct_fields",
     "-Aclippy::default_trait_access",
 ]
